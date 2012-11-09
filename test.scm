@@ -4,9 +4,13 @@
                  (act (str "abc")
                    (lambda (o) "a"))
                  (str "bb")
+                 (ind (seq
+                        (str "a")
+                        (str "b"))
+                   1)
                  (rep+ (char #\4))
                  (join (char #\a) (char #\b))
                  (eof)))
 
-(display (parse-string "abcbb44444abababa" parser))
+(display (parse-string "abcbbab44444abababa" parser))
 (newline)
