@@ -42,90 +42,122 @@
   (use srfi-69)
   (use streams-utils)
 
-  (define pos  0)
-  (define line 0)
-  (define col  0)
-  (define input-stream)
+  (define-record ctxt
+    input-stream
+    pos
+    line
+    col
+    err-line
+    err-col
+    err-msg
+    cache
+    combinator-ids)
+
+  ;; initialize context
+  (define (init-ctxt ctxt)
+    (ctxt-pos-set!  ctxt  0)
+    (ctxt-line-set! ctxt 0)
+    (ctxt-col-set!  ctxt 0)
+    (ctxt-err-line-set! ctxt 0)
+    (ctxt-err-col-set! ctxt 0)
+    (ctxt-err-msg-set! ctxt "")
+    (ctxt-cache-set! ctxt (make-hash-table))
+    (ctxt-combinator-ids-set! ctxt (make-hash-table)))
+
+  (define (%make-ctxt s)
+    (let ((ctxt (make-ctxt
+                  s
+                  0
+                  0
+                  0
+                  0
+                  0
+                  ""
+                  (make-hash-table)
+                  (make-hash-table))))
+      ctxt))
 
   ;; cache computation results based on combintor and stream position
-  (define cache (make-hash-table))
-  (define combinator-ids (make-hash-table))
+  (define (combinator-id p ctxt)
+    (let ((cids (ctxt-combinator-ids ctxt)))
+      (if (not (hash-table-exists? cids p))
+        (hash-table-set! cids p (symbol->string (gensym))))
+      (hash-table-ref cids p)))
 
-  (define (combinator-id p)
-    (if (not (hash-table-exists? combinator-ids p))
-      (hash-table-set! combinator-ids p (symbol->string (gensym))))
-    (hash-table-ref combinator-ids p))
-
-  (define (apply-c p)
-    (let* ((p-id (combinator-id p))
-           (comb-id (string-append p-id ":" (number->string pos))))
+  (define (apply-c p ctxt)
+    (let* ((p-id (combinator-id p ctxt))
+           (comb-id (string-append p-id ":" (number->string (ctxt-pos ctxt))))
+           (cache (ctxt-cache ctxt)))
       (if (not (hash-table-exists? cache comb-id))
-        (hash-table-set! cache comb-id (list (p) pos line col err-line err-col err-msg)))
+        (hash-table-set! cache comb-id
+          (list (p ctxt)
+                (ctxt-pos ctxt)
+                (ctxt-line ctxt)
+                (ctxt-col ctxt)
+                (ctxt-err-line ctxt)
+                (ctxt-err-col ctxt)
+                (ctxt-err-msg ctxt))))
       (let* ((r (hash-table-ref cache comb-id))
              (rr (list-ref r 0)))
-        (set! pos      (list-ref r 1))
-        (set! line     (list-ref r 2))
-        (set! col      (list-ref r 3))
+        (ctxt-pos-set! ctxt   (list-ref r 1))
+        (ctxt-line-set! ctxt  (list-ref r 2))
+        (ctxt-col-set! ctxt   (list-ref r 3))
         (if (not r)
           (begin
-            (set! err-line (list-ref r 4))
-            (set! err-col  (list-ref r 5))
-            (set! err-msg  (list-ref r 6))))
+            (ctxt-err-line-set! ctxt (list-ref r 4))
+            (ctxt-err-col-set! ctxt  (list-ref r 5))
+            (ctxt-err-msg-set! ctxt  (list-ref r 6))))
         rr)))
 
   ;; end of stream
-  (define (end-of-stream? i)
-    (let ((es (stream-drop i input-stream)))
+  (define (end-of-stream? i ctxt)
+    (let ((es (stream-drop i (ctxt-input-stream ctxt))))
       (stream-null? es)))
 
   ;; error report
-  (define err-line 0)
-  (define err-col  0)
-  (define err-msg  "")
-
-  (define (report-error)
+  (define (report-error ctxt)
     (display "parsing failed:\n")
-    (display err-msg)
+    (display (ctxt-err-msg ctxt))
     (display "@(")
-    (display err-line)
+    (display (ctxt-err-line ctxt))
     (display ", ")
-    (display err-col)
+    (display (ctxt-err-col ctxt))
     (display ")\n"))
 
-  (define (record-error . msg)
-    (set! err-line line)
-    (set! err-col  col)
-    (set! err-msg  msg))
+  (define (record-error ctxt . msg)
+    (ctxt-err-line-set! ctxt (ctxt-line ctxt))
+    (ctxt-err-col-set!  ctxt (ctxt-col ctxt))
+    (ctxt-err-msg-set!  ctxt msg))
 
   ;; parse a char
   (define (char c)
-    (lambda ()
-      (if (end-of-stream? pos)
+    (lambda (ctxt)
+      (if (end-of-stream? (ctxt-pos ctxt) ctxt)
         (begin
-          (record-error "end of stream")
+          (record-error ctxt "end of stream")
           #f)
-        (let ((ic (stream-ref input-stream pos)))
+        (let ((ic (stream-ref (ctxt-input-stream ctxt) (ctxt-pos ctxt))))
           (if (equal? ic c)
              (begin
-               (set! pos (+ pos 1))
-               (set! col (+ col 1))
+               (ctxt-pos-set! ctxt (+ (ctxt-pos ctxt) 1))
+               (ctxt-col-set! ctxt (+ (ctxt-col ctxt) 1))
                (if (equal? ic #\newline)
                  (begin
-                   (set! col 0)
-                   (set! line (+ line 1))))
+                   (ctxt-col-set! ctxt 0)
+                   (ctxt-line-set! ctxt (+ (ctxt-line ctxt) 1))))
                (char-set->string (char-set c)))
              (begin
-               (record-error "expect:" c ";but got:" ic)
+               (record-error ctxt "expect:" c ";but got:" ic)
                #f))))))
 
   ;; seqence of parsers
   (define (seq fp . lst)
-    (lambda ()
-      (let* ((cpos pos)
-             (fr (apply-c fp))
+    (lambda (ctxt)
+      (let* ((cpos (ctxt-pos ctxt))
+             (fr (apply-c fp ctxt))
              (lr (fold (lambda (cp pr)
                    (if pr
-                     (let ((cr (apply-c cp)))
+                     (let ((cr (apply-c cp ctxt)))
                        (if cr
                          (append pr (list cr))
                          #f))
@@ -137,16 +169,16 @@
          (if lr
            lr
            (begin
-             (set! pos cpos)
+             (ctxt-pos-set! ctxt cpos)
              #f)))))
 
   ;; ordered selective parsers
   (define (sel . lst)
-    (lambda ()
+    (lambda (ctxt)
       (fold (lambda (cp r) 
               (if r
                 r
-                (let ((cr (apply-c cp)))
+                (let ((cr (apply-c cp ctxt)))
                   (if cr
                     cr
                     #f))))
@@ -155,9 +187,9 @@
 
   ;; repeat 0 - infinite times
   (define (rep p)
-    (lambda ()
+    (lambda (ctxt)
       (letrec ((lp (lambda (r)
-                  (let ((rr (apply-c p)))
+                  (let ((rr (apply-c p ctxt)))
                     (if rr
                       (lp (append r (list rr)))
                       r)))))
@@ -165,7 +197,7 @@
 
   ;; null
   (define (zero)
-    (lambda ()
+    (lambda (ctxt)
       ""))
 
   ;; appear once or zero
@@ -181,18 +213,18 @@
 
   ;; predicate
   (define (pred p pd #!optional (n #f))
-    (lambda ()
-      (let ((cpos pos) 
-            (pr (apply-c p)))
+    (lambda (ctxt)
+      (let ((cpos (ctxt-pos ctxt))
+            (pr (apply-c p ctxt)))
         (if pr
-          (let ((cppos pos)
-                (pdr (apply-c pd)))
+          (let ((cppos (ctxt-pos ctxt))
+                (pdr (apply-c pd ctxt)))
             (if (if n (not pdr) pdr)
               (begin
-                (set! pos cppos)
+                (ctxt-pos-set! ctxt cppos)
                 pr)
               (begin
-                (set! pos cpos)
+                (ctxt-pos-set! ctxt cpos)
                 #f)))
           #f))))
 
@@ -201,11 +233,11 @@
 
   ;; end of file
   (define (eof)
-    (lambda ()
-      (if (end-of-stream? pos)
+    (lambda (ctxt)
+      (if (end-of-stream? (ctxt-pos ctxt) ctxt)
         ""
         (begin
-          (record-error "expect: end of file")
+          (record-error ctxt "expect: end of file")
           #f))))
 
   ;; a string
@@ -229,8 +261,8 @@
 
   ;; add action for parser to process the output
   (define (act p #!optional (succ #f) (fail #f))
-    (lambda ()
-      (let ((pr (p)))
+    (lambda (ctxt)
+      (let ((pr (p ctxt)))
         (if pr
 	  (if succ
             (succ pr)
@@ -259,14 +291,14 @@
 
   ;; lazy
   (define (%lazy p)
-    (lambda ()
-      (p)))
+    (lambda (ctxt)
+      (p ctxt)))
 
   (define-syntax lazy
     (syntax-rules ()
       ((_ p)
-       (%lazy (lambda ()
-		(p))))))
+       (%lazy (lambda (ctxt)
+		(p ctxt))))))
 
   ;; regexp
   (define (regexp)
@@ -286,37 +318,25 @@
 	     (e  (seq (rep (sel o? ss r* r+ a)))))
       (seq e (eof))))
 
-  ;; initialize parser
-  (define (init-parser)
-    (set! pos  0)
-    (set! line 0)
-    (set! col  0)
-    (set! err-line 0)
-    (set! err-col  0)
-    (set! err-msg  ""))
-
   ;; parse
-  (define (parse p)
-    (init-parser)
-    (let ((r (p)))
+  (define (parse p s)
+    (let* ((ctxt (%make-ctxt s))
+           (r (p ctxt)))
       (if r r
         (begin
-          (report-error)
+          (report-error ctxt)
           #f))))
 
   ;; parse file
   (define (parse-file file p)
-    (set! input-stream (file->stream file))
-    (parse p))
+    (parse p (file->stream file)))
 
   ;; parse string
   (define (parse-string str p)
-    (set! input-stream (list->stream (string->list str)))
-    (parse p))
+    (parse p (list->stream (string->list str))))
   
   ;; parse from port
   (define (parse-port port p)
-    (set! input-stream (port->stream port))
-    (parse p)))
+    (parse p (port->stream port))))
 
 
