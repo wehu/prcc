@@ -1,3 +1,3 @@
 (use prcc)
 
-(display (parse-string "cdfjdkl?(df[fdd]d)+" (regexp)))
+(display (regexp-match "a?bc" "bc"))

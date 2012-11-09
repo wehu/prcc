@@ -30,6 +30,7 @@
               ind
 	      lazy
 	      regexp
+              regexp-match
               parse-file
               parse-string
               parse-port)
@@ -202,7 +203,7 @@
 
   ;; appear once or zero
   (define (one? p)
-    (sel p zero))
+    (sel p (zero)))
 
   ;; repeat 1 - infinite times
   (define (rep+ p)
@@ -301,22 +302,44 @@
 		(p ctxt))))))
 
   ;; regexp
-  (define (regexp)
-    (letrec ((w (one-of "abcdefghijklmnopqrstuvwxyz_"))
-	     (d (one-of "0123456789"))
-	     (dot (char #\.))
-	     (^ (char #\^))
-	     ($ (char #\$))
+  (define (regexp-parser)
+    (letrec ((w (act (one-of "abcdefghijklmnopqrstuvwxyz_") (lambda (o)
+                  (str o))))
+	     (d (act (one-of "0123456789") (lambda (o)
+                  (str o))))
+	     (dot (act (char #\.) (lambda (o)
+                  (str o))))
+	     (^ (act (char #\^) (lambda (o)
+                  (str o))))
+	     ($ (act (char #\$) (lambda (o)
+                  (str o))))
 	     (a  (sel (lazy es) (lazy ee) w d dot ^ $))
-	     (o? (seq a (char #\?)))
-	     (r* (seq a (char #\*)))
-	     (r+ (seq a (char #\+)))
-	     (es (seq (char #\[) (rep+ a) (char #\])))
-	     (s  (seq (lazy e) (char #\|) (lazy e)))
-             (ss (seq (char #\() s (char #\))))
-	     (ee (seq (char #\() (lazy e) (char #\))))
-	     (e  (seq (rep (sel o? ss r* r+ a)))))
-      (seq e (eof))))
+	     (o? (act (seq a (char #\?)) (lambda (o)
+                   (one? (car o)))))
+	     (r* (act (seq a (char #\*)) (lambda (o)
+                   (rep (car o)))))
+	     (r+ (act (seq a (char #\+)) (lambda (o)
+                   (rep+ (car o)))))
+	     (es (act (seq (char #\[) (rep+ a) (char #\])) (lambda (o)
+                   (apply seq (cadr o)))))
+	     (s  (act (seq (lazy e) (char #\|) (lazy e)) (lambda (o)
+                   (sel (car o) (caddr o)))))
+             (ss (act (seq (char #\() s (char #\))) (lambda (o)
+                   (cadr o))))
+	     (ee (act (seq (char #\() (lazy e) (char #\))) (lambda (o)
+                   (cadr o))))
+	     (e  (act (rep (sel o? ss r* r+ a)) (lambda (o)
+                   (apply seq o)))))
+      (ind (seq e (eof)) 0)))
+
+   (define (regexp str)
+     (parse-string str (regexp-parser)))
+
+   (define (regexp-match r str)
+     (let* ((ctxt (%make-ctxt (list->stream (string->list str))))
+            (rr ((regexp r) ctxt)))
+      (if rr rr
+        #f)))
 
   ;; parse
   (define (parse p s)
