@@ -5,7 +5,8 @@
                    (lambda (o) "a"))
                  (str "bb")
                  (rep+ (char #\4))
+                 (join (char #\a) (char #\b))
                  (eof)))
 
-(display (parse-string "abcbb44444" parser))
+(display (parse-string "abcbb44444abababa" parser))
 (newline)

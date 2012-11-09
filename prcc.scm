@@ -25,6 +25,7 @@
               eof
               str
               one-of
+              join
               act
               parse-file
               parse-string
@@ -101,7 +102,7 @@
                    (set! line (+ line 1))))
                (char-set->string (char-set c)))
              (begin
-               (record-error "expect " c " but got " ic)
+               (record-error "expect:" c ";but got:" ic)
                #f))))))
 
   ;; seqence of parsers
@@ -218,6 +219,16 @@
         (if pr
           (proc pr)
           #f))))
+
+  ;; regexp
+  (define (join p0 p1)
+    (act
+      (seq p0 (act
+                (rep (seq p1 p0))
+                (lambda (o)
+                  (apply append o))))
+      (lambda (o)
+        (cons (car o) (cadr o)))))
 
   ;; parse file
   (define (parse-file file p)
