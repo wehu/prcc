@@ -60,10 +60,15 @@
     (let* ((p-id (combinator-id p))
            (comb-id (string-append p-id ":" (number->string pos))))
       (if (not (hash-table-exists? cache comb-id))
-        (hash-table-set! cache comb-id (cons (p) pos)))
+        (hash-table-set! cache comb-id (list (p) pos line col err-line err-col err-msg)))
       (let ((r (hash-table-ref cache comb-id)))
-        (set! pos (cdr r))
-        (car r))))
+        (set! pos      (list-ref r 1))
+        (set! line     (list-ref r 2))
+        (set! col      (list-ref r 3))
+        (set! err-line (list-ref r 4))
+        (set! err-col  (list-ref r 5))
+        (set! err-msg  (list-ref r 6))
+        (list-ref r 0))))
 
   ;; end of stream
   (define (end-of-stream? i)
