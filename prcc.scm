@@ -61,14 +61,17 @@
            (comb-id (string-append p-id ":" (number->string pos))))
       (if (not (hash-table-exists? cache comb-id))
         (hash-table-set! cache comb-id (list (p) pos line col err-line err-col err-msg)))
-      (let ((r (hash-table-ref cache comb-id)))
+      (let* ((r (hash-table-ref cache comb-id))
+             (rr (list-ref r 0)))
         (set! pos      (list-ref r 1))
         (set! line     (list-ref r 2))
         (set! col      (list-ref r 3))
-        (set! err-line (list-ref r 4))
-        (set! err-col  (list-ref r 5))
-        (set! err-msg  (list-ref r 6))
-        (list-ref r 0))))
+        (if (not r)
+          (begin
+            (set! err-line (list-ref r 4))
+            (set! err-col  (list-ref r 5))
+            (set! err-msg  (list-ref r 6))))
+        rr)))
 
   ;; end of stream
   (define (end-of-stream? i)
@@ -277,10 +280,11 @@
 	     (r* (seq a (char #\*)))
 	     (r+ (seq a (char #\+)))
 	     (es (seq (char #\[) (rep+ a) (char #\])))
-	     (s (seq (lazy e) (char #\|) (lazy e)))
+	     (s  (seq (lazy e) (char #\|) (lazy e)))
+             (ss (seq (char #\() s (char #\))))
 	     (ee (seq (char #\() (lazy e) (char #\))))
-	     (e (seq (rep (sel o? a)) (eof))))
-      e))
+	     (e  (seq (rep (sel o? ss r* r+ a)))))
+      (seq e (eof))))
 
   ;; initialize parser
   (define (init-parser)

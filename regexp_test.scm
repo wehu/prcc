@@ -1,3 +1,3 @@
 (use prcc)
 
-(display (parse-string "c" (regexp)))
+(display (parse-string "cdfjdkl?(df[fdd]d)+" (regexp)))
