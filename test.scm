@@ -10,7 +10,8 @@
                    1)
                  (rep+ (char #\4))
                  (join (char #\a) (char #\b))
+                 (str "ccc")
                  (eof)))
 
-(display (parse-string "abcbbab44444abababa" parser))
+(display (parse-string "abcbbab44444abababaccc" parser))
 (newline)

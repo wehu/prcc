@@ -193,7 +193,9 @@
     (lambda ()
       (if (end-of-stream? pos)
         ""
-        #f)))
+        (begin
+          (record-error "expect: end of file")
+          #f))))
 
   ;; a string
   (define (str s)
