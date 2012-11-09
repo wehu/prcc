@@ -1,4 +1,4 @@
-### Prcc
+### Parser/Regex Combinator library for Chicken scheme
 
 Prcc is a PEG-like combinator parser library by packrat parsing
 
