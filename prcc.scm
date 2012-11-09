@@ -27,7 +27,6 @@
               one-of
               join
               act
-              fail
               ind
               parse-file
               parse-string
@@ -217,12 +216,17 @@
         (string->list str))))
 
   ;; add action for parser to process the output
-  (define (act p proc)
+  (define (act p #!optional (succ #f) (fail #f))
     (lambda ()
       (let ((pr (p)))
         (if pr
-          (proc pr)
-          #f))))
+	  (if succ
+            (succ pr)
+	    pr)
+          (begin
+	    (if fail
+  	      (fail))
+	    #f)))))
 
   ;; join 
   (define (join p0 p1)
@@ -234,12 +238,6 @@
       (lambda (o)
         (cons (car o) (cadr o)))))
 
-  ;; fail
-  (define (fail)
-    (lambda ()
-      (record-error "fail by user")
-      #f))
-
   ;; index
   (define (ind p index)
     (act
@@ -247,31 +245,37 @@
       (lambda (o)
         (list-ref o index))))
 
-  ;; parse file
-  (define (parse-file file p)
-    (set! input-stream (file->stream file))
+  ;; initialize parser
+  (define (init-parser)
+    (set! pos  0)
+    (set! line 0)
+    (set! col  0)
+    (set! err-line 0)
+    (set! err-col  0)
+    (set! err-msg  ""))
+
+  ;; parse
+  (define (parse p)
+    (init-parser)
     (let ((r (p)))
       (if r r
         (begin
           (report-error)
           #f))))
 
+  ;; parse file
+  (define (parse-file file p)
+    (set! input-stream (file->stream file))
+    (parse p))
+
   ;; parse string
   (define (parse-string str p)
     (set! input-stream (list->stream (string->list str)))
-    (let ((r (p)))
-      (if r r
-        (begin
-          (report-error)
-          #f))))
+    (parse p))
   
   ;; parse from port
   (define (parse-port port p)
     (set! input-stream (port->stream port))
-    (let ((r (p)))
-      (if r r
-        (begin
-          (report-error)
-          #f)))))
+    (parse p)))
 
 
