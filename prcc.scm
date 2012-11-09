@@ -27,6 +27,8 @@
               one-of
               join
               act
+              fail
+              ind
               parse-file
               parse-string
               parse-port)
@@ -220,7 +222,7 @@
           (proc pr)
           #f))))
 
-  ;; regexp
+  ;; join 
   (define (join p0 p1)
     (act
       (seq p0 (act
@@ -229,6 +231,19 @@
                   (apply append o))))
       (lambda (o)
         (cons (car o) (cadr o)))))
+
+  ;; fail
+  (define (fail)
+    (lambda ()
+      (record-error "fail by user")
+      #f))
+
+  ;; index
+  (define (ind p index)
+    (act
+      p
+      (lambda (o)
+        (list-ref o index))))
 
   ;; parse file
   (define (parse-file file p)
