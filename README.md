@@ -39,6 +39,7 @@ Prcc is a PEG-like combinator parser library by packrat parsing
 * (join parser0 parser1) : repeat parser0 with parser1 inserted
 * (act parser [succ proc] [fail proc]) : mutate parser and be used to process the output of a parser
 * (ind seq-parser index) : return the value that is indicated by index
+* (lazy parser)
 * (parse-file filename parser)
 * (parse-string string parser)
 * (parse-port port parser)

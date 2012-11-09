@@ -28,6 +28,8 @@
               join
               act
               ind
+	      lazy
+	      regexp
               parse-file
               parse-string
               parse-port)
@@ -244,6 +246,34 @@
       p
       (lambda (o)
         (list-ref o index))))
+
+  ;; lazy
+  (define (%lazy p)
+    (lambda ()
+      (p)))
+
+  (define-syntax lazy
+    (syntax-rules ()
+      ((_ p)
+       (%lazy (lambda ()
+		(p))))))
+
+  ;; regexp
+  (define (regexp)
+    (letrec ((w (one-of "abcdefghijklmnopqrstuvwxyz_0123456789"))
+	     (d (one-of "0123456789"))
+	     (dot (char #\.))
+	     (^ (char #\^))
+	     ($ (char #\$))
+	     (a  (sel (lazy es) (lazy ee) w d dot ^ $))
+	     (o? (seq a (char #\?)))
+	     (r* (seq a (char #\*)))
+	     (r+ (seq a (char #\+)))
+	     (es (seq (char #\[) (rep+ a) (char #\])))
+	     (s (seq (lazy e) (char #\|) (lazy e)))
+	     (ee (seq (char #\() (lazy e) (char #\))))
+	     (e (seq (rep (sel o? a)) (eof))))
+      e))
 
   ;; initialize parser
   (define (init-parser)
