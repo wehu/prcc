@@ -1,3 +1,3 @@
 (use prcc)
 
-(display (regexp-match "a?bc" "bc"))
+(display (regexp-match "a?[abc]\\w" "bc"))
