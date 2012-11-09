@@ -60,8 +60,10 @@
     (let* ((p-id (combinator-id p))
            (comb-id (string-append p-id ":" (number->string pos))))
       (if (not (hash-table-exists? cache comb-id))
-        (hash-table-set! cache comb-id (p)))
-      (hash-table-ref cache comb-id)))
+        (hash-table-set! cache comb-id (cons (p) pos)))
+      (let ((r (hash-table-ref cache comb-id)))
+        (set! pos (cdr r))
+        (car r))))
 
   ;; end of stream
   (define (end-of-stream? i)
@@ -111,19 +113,19 @@
   ;; seqence of parsers
   (define (seq fp . lst)
     (lambda ()
-      (let ((cpos pos)
-            (lr (fold (lambda (cp pr)
-                    (if pr
-                      (let ((cr (apply-c cp)))
-                        (if cr
-                          (append pr (list cr))
-                          #f))
-                      #f))
-                (let ((fr (apply-c fp)))
-                  (if fr
-                    (list fr)
-                    #f))
-                lst)))
+      (let* ((cpos pos)
+             (fr (apply-c fp))
+             (lr (fold (lambda (cp pr)
+                   (if pr
+                     (let ((cr (apply-c cp)))
+                       (if cr
+                         (append pr (list cr))
+                         #f))
+                     #f))
+                   (if fr
+                     (list fr)
+                     #f)
+                   lst)))
          (if lr
            lr
            (begin
@@ -260,7 +262,7 @@
 
   ;; regexp
   (define (regexp)
-    (letrec ((w (one-of "abcdefghijklmnopqrstuvwxyz_0123456789"))
+    (letrec ((w (one-of "abcdefghijklmnopqrstuvwxyz_"))
 	     (d (one-of "0123456789"))
 	     (dot (char #\.))
 	     (^ (char #\^))
