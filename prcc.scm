@@ -14,8 +14,7 @@
 ;; limitations under the License.
 ;;;;
 
-(module prcc (parse
-              char
+(module prcc (char
               seq
               sel
               one?
@@ -26,7 +25,10 @@
               eof
               str
               one-of
-              act)
+              act
+              parse-file
+              parse-string
+              parse-port)
   
   (import chicken scheme)
 
@@ -36,9 +38,12 @@
   (use srfi-69)
   (use streams-utils)
 
-  (define pos 0)
+  (define pos  0)
+  (define line 0)
+  (define col  0)
   (define input-stream)
 
+  ;; cache computation results based on combintor and stream position
   (define cache (make-hash-table))
   (define combinator-ids (make-hash-table))
 
@@ -54,15 +59,52 @@
         (hash-table-set! cache comb-id (p)))
       (hash-table-ref cache comb-id)))
 
+  ;; end of stream
+  (define (end-of-stream? i)
+    (let ((es (stream-drop i input-stream)))
+      (stream-null? es)))
+
+  ;; error report
+  (define err-line 0)
+  (define err-col  0)
+  (define err-msg  "")
+
+  (define (report-error)
+    (display "parsing failed:\n")
+    (display err-msg)
+    (display "@(")
+    (display err-line)
+    (display ", ")
+    (display err-col)
+    (display ")\n"))
+
+  (define (record-error . msg)
+    (set! err-line line)
+    (set! err-col  col)
+    (set! err-msg  msg))
+
+  ;; parse a char
   (define (char c)
     (lambda ()
-      (let ((ic (stream-ref input-stream pos)))
-        (if (equal? ic c)
-          (begin
-            (set! pos (+ pos 1))
-            (char-set->string (char-set c)))
-          #f))))
+      (if (end-of-stream? pos)
+        (begin
+          (record-error "end of stream")
+          #f)
+        (let ((ic (stream-ref input-stream pos)))
+          (if (equal? ic c)
+             (begin
+               (set! pos (+ pos 1))
+               (set! col (+ col 1))
+               (if (equal? ic #\newline)
+                 (begin
+                   (set! col 0)
+                   (set! line (+ line 1))))
+               (char-set->string (char-set c)))
+             (begin
+               (record-error "expect " c " but got " ic)
+               #f))))))
 
+  ;; seqence of parsers
   (define (seq fp . lst)
     (lambda ()
       (let ((cpos pos)
@@ -84,6 +126,7 @@
              (set! pos cpos)
              #f)))))
 
+  ;; ordered selective parsers
   (define (sel . lst)
     (lambda ()
       (fold (lambda (cp r) 
@@ -96,6 +139,7 @@
         #f
         lst)))
 
+  ;; repeat 0 - infinite times
   (define (rep p)
     (lambda ()
       (letrec ((lp (lambda (r)
@@ -105,16 +149,23 @@
                       r)))))
         (lp `()))))
 
+  ;; null
   (define (zero)
     (lambda ()
       ""))
 
+  ;; appear once or zero
   (define (one? p)
     (sel p zero))
 
+  ;; repeat 1 - infinite times
   (define (rep+ p)
-    (seq p (rep p)))
+    (act
+      (seq p (rep p))
+      (lambda (o)
+        (cons (car o) (cadr o)))))
 
+  ;; predicate
   (define (pred p pd #!optional (n #f))
     (lambda ()
       (let ((cpos pos) 
@@ -134,26 +185,33 @@
   (define (pred! p pd)
     (pred p pd #t))
 
+  ;; end of file
   (define (eof)
     (lambda ()
-      (if (= (+ pos 1) (stream-length input-stream))
+      (if (end-of-stream? pos)
         ""
         #f)))
 
+  ;; a string
   (define (str s)
-    (apply seq
-      (map
-        (lambda (c)
-          (char c))
-        (char-set->list (string->char-set s)))))
+    (act
+      (apply seq
+        (map
+          (lambda (c)
+            (char c))
+          (string->list s)))
+      (lambda (cs)
+        (apply string-append cs))))
 
+  ;; match one char in a string
   (define (one-of str)
     (apply sel
       (map
         (lambda (c)
           (char c))
-        (char-set->list (string->char-set str)))))
+        (string->list str))))
 
+  ;; add action for parser to process the output
   (define (act p proc)
     (lambda ()
       (let ((pr (p)))
@@ -161,8 +219,31 @@
           (proc pr)
           #f))))
 
-  (define (parse file p)
+  ;; parse file
+  (define (parse-file file p)
     (set! input-stream (file->stream file))
-    (p)))
+    (let ((r (p)))
+      (if r r
+        (begin
+          (report-error)
+          #f))))
+
+  ;; parse string
+  (define (parse-string str p)
+    (set! input-stream (list->stream (string->list str)))
+    (let ((r (p)))
+      (if r r
+        (begin
+          (report-error)
+          #f))))
+  
+  ;; parse from port
+  (define (parse-port port p)
+    (set! input-stream (port->stream port))
+    (let ((r (p)))
+      (if r r
+        (begin
+          (report-error)
+          #f)))))
 
 

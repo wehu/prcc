@@ -1,7 +1,8 @@
-(compile -s -O3 -d1 "prcc.scm")
+(compile -s -O3 -d1 "prcc.scm" -j prcc)
+(compile -s -O3 -d0 "prcc.import.scm")
 
 (install-extension
  'prcc
- '("prcc.so")
+ '("prcc.so" "prcc.import.so")
  '((version 0.1)))
 
