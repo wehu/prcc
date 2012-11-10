@@ -56,6 +56,7 @@
   (use srfi-41)
   (use srfi-69)
   (use streams-utils)
+  (use type-checks)
 
   (define-record ctxt
     name
@@ -156,6 +157,7 @@
 
   ;; parse a char
   (define (char c)
+    (check-char 'char c)
     (lambda (ctxt)
       (if (end-of-stream? (ctxt-pos ctxt) ctxt)
         (begin
@@ -178,10 +180,12 @@
 
   ;; seqence of parsers
   (define (seq fp . lst)
+    (check-procedure 'seq fp)
     (lambda (ctxt)
       (let* ((cpos (ctxt-pos ctxt))
              (fr (apply-c fp ctxt))
              (lr (fold (lambda (cp pr)
+                   (check-procedure 'seq cp)
                    (if pr
                      (let ((cr (apply-c cp ctxt)))
                        (if cr
@@ -202,7 +206,8 @@
   ;; ordered selective parsers
   (define (sel . lst)
     (lambda (ctxt)
-      (fold (lambda (cp r) 
+      (fold (lambda (cp r)
+              (check-procedure 'sel cp) 
               (if r
                 r
                 (let ((cr (apply-c cp ctxt)))
@@ -215,6 +220,7 @@
 
   ;; repeat 0 - infinite times
   (define (rep p)
+    (check-procedure 'rep p)
     (lambda (ctxt)
       (letrec ((lp (lambda (r)
                   (let ((rr (apply-c p ctxt)))
@@ -232,11 +238,13 @@
 
   ;; appear once or zero
   (define (one? p)
+    (check-procedure 'one? p)
     (sel p (zero)))
   (define <?> one?)
 
   ;; repeat 1 - infinite times
   (define (rep+ p)
+    (check-procedure 'rep+ p)
     (act
       (seq p (rep p))
       (lambda (o)
@@ -245,6 +253,8 @@
 
   ;; predicate
   (define (pred p pd #!optional (n #f))
+    (check-procedure 'pred p)
+    (check-procedure 'pred pd)
     (lambda (ctxt)
       (let ((cpos (ctxt-pos ctxt))
             (pr (apply-c p ctxt)))
@@ -262,6 +272,8 @@
   (define <&> pred)
 
   (define (pred! p pd)
+    (check-procedure 'pred! p)
+    (check-procedure 'pred! pd)
     (pred p pd #t))
   (define <&!> pred!)
 
@@ -276,6 +288,7 @@
 
   ;; neg
   (define (neg p)
+    (check-procedure 'neg p)
     (lambda (ctxt)
       (let ((cpos (ctxt-pos ctxt))
             (r (p ctxt)))
@@ -294,6 +307,7 @@
 
   ;; a string
   (define (str s)
+    (check-string 'str s)
     (act
       (apply seq
         (map
@@ -306,6 +320,7 @@
 
   ;; match one char in a string
   (define (one-of str)
+    (check-string 'one-of str)
     (apply sel
       (map
         (lambda (c)
@@ -314,20 +329,27 @@
 
   ;; add action for parser to process the output
   (define (act p #!optional (succ #f) (fail #f))
+    (check-procedure 'act p)
     (lambda (ctxt)
       (let ((pr (p ctxt)))
         (if pr
 	  (if succ
-            (succ pr)
+            (begin
+              (check-procedure 'act succ)
+              (succ pr))
 	    pr)
           (begin
 	    (if fail
-  	      (fail))
+  	      (begin
+                (check-procedure 'act fail)
+                (fail)))
 	    #f)))))
   (define <@> act)
 
   ;; join 
   (define (join p0 p1)
+    (check-procedure 'join p0)
+    (check-procedure 'join p1)
     (act
       (seq p0 (act
                 (rep (seq p1 p0))
@@ -338,6 +360,8 @@
 
   ;; index
   (define (ind p index)
+    (check-procedure 'ind p)
+    (check-number 'ind index)
     (act
       p
       (lambda (o)
@@ -350,6 +374,7 @@
       ((_ p)
        (lambda (ctxt)
          ((lambda (c)
+            (check-procedure 'lazy p)
             (p c)) ctxt)))))
 
   ;; regexp
@@ -410,14 +435,20 @@
 
   ;; parse file
   (define (parse-file file p)
+    (check-string 'parse-file file)
+    (check-procedure 'parse-file p)
     (parse p file (file->stream file)))
 
   ;; parse string
   (define (parse-string str p)
+    (check-string 'parse-string str)
+    (check-procedure 'parse-string p)
     (parse p str (list->stream (string->list str))))
   
   ;; parse from port
   (define (parse-port port p)
+    (check-input-port 'parse-port port)
+    (check-procedure 'parse-port p)
     (parse p (port-name) (port->stream port))))
 
 
