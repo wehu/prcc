@@ -9,3 +9,7 @@
                   (eof)))
 (display (parse-string "bccjabc" p1))
 (newline)
+
+(define p2 (<and> (<s*>)))
+(display (parse-string " \n\t     " p2))
+(newline)

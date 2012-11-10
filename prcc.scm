@@ -395,7 +395,9 @@
       (let ((str (list->string
                    (stream->list (stream-take-while
                      (lambda (c) (not (equal? c #\newline)))
-                     (ctxt-input-stream ctxt))))))
+                     (stream-drop
+                       (ctxt-pos ctxt)
+                       (ctxt-input-stream ctxt)))))))
         (let ((rr (string-search (regexp (string-append "^" r)) str)))
           (if rr
             (let ((rrr (car rr)))
@@ -412,20 +414,20 @@
     (<r> "\\w"))
 
   (define (<space>)
-    (<or> (<r> "\\s")
-          (<c> #\newline)))
+    (<or> (<c> #\newline)
+          (<r> "\\s")))
 
   (define (<w*>)
-    (<r> "\\w"))
+    (<r> "\\w*"))
 
   (define (<s*>)
-    (<*> <space>))
+    (<*> (<space>)))
 
   (define (<w+>)
     (<r> "\\w+"))
 
   (define (<s+>)
-    (<+> <space>))
+    (<+> (<space>)))
 
   ;; parse
   (define (parse p n s)
