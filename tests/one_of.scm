@@ -1,0 +1,10 @@
+(use prcc)
+
+(define p0 (<and> (char #\a)
+                (one-of "abc")))
+(display (parse-string "aa" p0))
+(newline)
+(display (parse-string "ab" p0))
+(newline)
+(display (parse-string "ac" p0))
+(newline)
