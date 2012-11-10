@@ -19,7 +19,9 @@
               sel
               one?
               rep
+	      rep_
               rep+
+	      rep+_
               pred
               pred!
               eof
@@ -37,7 +39,9 @@
               <or>
               <?>
               <*>
+	      <*_>
               <+>
+	      <+_>
               <&>
               <&!>
               <s>
@@ -458,6 +462,15 @@
                lst)))
       (even (apply seq l))))
   (define <and_> seq_)
+
+  (define (rep+_ p)
+    (even (join+ p (<s*>))))
+  (define <+_> rep+_)
+
+  (define (rep_ p)
+    (<or> (rep+_ p)
+	  (act (zero) (lambda (o) `()))))
+  (define <*_> rep_)
 
   ;; parse
   (define (parse p n s)
