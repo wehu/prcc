@@ -1,7 +1,7 @@
 (use prcc)
 
-(define p0 (<and> (<r> "[abc]a?(cc)")
+(define p0 (<and> (<r> "[abc]a?(cc)\\w")
                   (<s> "abc")))
-(display (parse-string "bccabc" p0))
+(display (parse-string "bccjabc" p0))
 (newline)
 

@@ -14,6 +14,7 @@
 (include "rep.scm")
 (include "sel.scm")
 (include "seq.scm")
+(include "regexp.scm")
 
 (define parser (seq
                  (act (str "abc")
