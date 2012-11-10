@@ -1,5 +1,22 @@
 (use prcc)
 
+(include "act.scm")
+(include "eof.scm")
+(include "helloworld.scm")
+(include "ind.scm")
+(include "join.scm")
+(include "lazy.scm")
+(include "neg.scm")
+(include "one_of.scm")
+(include "one.scm")
+(include "pred_neg.scm")
+(include "pred.scm")
+(include "regexp_test.scm")
+(include "repp.scm")
+(include "rep.scm")
+(include "sel.scm")
+(include "seq.scm")
+
 (define parser (seq
                  (act (str "abc")
                    (lambda (o) "a"))
