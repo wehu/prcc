@@ -53,7 +53,7 @@ Prcc is a PEG-like combinator parser library by packrat parsing
   * `(str string)` : a string parser
       * alias `<s>`
   * `(one-of string)` : parse one of chars in string
-  * `(join parser0 parser1)` : repeat parser0 with parser1 inserted
+  * `(join+ parser0 parser1)` : repeat parser0 with parser1 inserted
   * `(ind seq-parser index)` : return the value that is indicated by index
       * alias `<#>`
   * `<w>` : word

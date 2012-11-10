@@ -2,9 +2,9 @@
 
 (use test)
 
-(test-begin "join")
+(test-begin "join+")
 
-(define p0 (join (char #\a)
+(define p0 (join+ (char #\a)
                 (one-of "bc")))
 (test (list "a" "b" "a" "c" "a") (parse-string "abaca" p0))
 
@@ -12,4 +12,4 @@
 
 (test (list "a" "b" "a") (parse-string "abac" p0))
 
-(test-end "join")
+(test-end "join+")

@@ -62,21 +62,21 @@
   (<and_> str (<c> #\:) value))
 
 (define members
-  (join pair (<and> (<s*>) (char #\,) (<s*>))))
+  (join+ pair (<and> (<s*>) (char #\,) (<s*>))))
 
 (define object
   (<or> (<and_> (<c> #\{) (<c> #\}))
         (<and_> (<c> #\{) members (<c> #\}))))
 
 (define elements
-  (join value (<and> (<s*>) (<c> #\,) (<s*>))))
+  (join+ value (<and> (<s*>) (<c> #\,) (<s*>))))
 
 (define array
   (<or> (<and_> (<c> #\[) (<c> #\]))
         (<and_> (<c> #\[) elements (<c> #\]))))
 
 (define parser
-  (<and> (join (<s*>) value) (eof)))
+  (<and> (join+ (<s*>) value) (eof)))
 
 (for-each (lambda (f)
   (display (parse-file f parser))

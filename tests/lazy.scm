@@ -4,7 +4,7 @@
 
 (test-begin "lazy")
 
-(define p0 (join (char #\a)
+(define p0 (join+ (char #\a)
                  (lazy p1)))
 (define p1 (char #\b))
 

@@ -25,7 +25,7 @@
               eof
               str
               one-of
-              join
+              join+
               act
               ind
 	      lazy
@@ -359,9 +359,9 @@
   (define <@> act)
 
   ;; join 
-  (define (join p0 p1)
-    (check-procedure 'join p0)
-    (check-procedure 'join p1)
+  (define (join+ p0 p1)
+    (check-procedure 'join+ p0)
+    (check-procedure 'join+ p1)
     (act
       (seq p0 (act
                 (rep (seq p1 p0))
