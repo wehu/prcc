@@ -340,7 +340,9 @@
 	    (if fail
   	      (begin
                 (check-procedure 'act fail)
-                (fail)))
+                (fail (if (end-of-stream? (ctxt-err-pos ctxt) ctxt)
+                        ""
+                        (stream-ref (ctxt-input-stream ctxt) (ctxt-err-pos ctxt))))))
 	    #f)))))
   (define <@> act)
 
