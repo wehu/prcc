@@ -398,8 +398,11 @@
           (if rr
             (let ((rrr (car rr)))
               (ctxt-pos-set! ctxt (+ (ctxt-pos ctxt) (string-length rrr)))
-              (let ((sr (string-split rrr "\n" #t)))
-                (ctxt-col-set! ctxt (+ (ctxt-col ctxt) (string-length (car (reverse sr)))))
+              (let* ((sr (string-split rrr "\n" #t))
+                     (sll (string-length (car (reverse sr)))))
+                (if (= (length sr) 1)
+                  (ctxt-col-set! ctxt (+ (ctxt-col ctxt) sll))
+                  (ctxt-col-set! ctxt sll))
                 (ctxt-line-set! ctxt (+ (ctxt-line ctxt) (- (length sr) 1))))
               rrr)
             (begin
