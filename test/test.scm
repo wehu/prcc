@@ -16,7 +16,7 @@
 (display (parse-string "abcbbab44444abababaccc" parser))
 (newline)
 
-(define p (one? (char #\a)))
+(define p (<or> (char #\a) (char #\b)))
 (display (parse-string "bcbbab44444abababaccc" p))
 (newline)
 

@@ -29,8 +29,22 @@
               act
               ind
 	      lazy
+              neg
 	      regexp
               regexp-match
+              ;; aliases
+              <c>
+              <and>
+              <or>
+              <?>
+              <*>
+              <+>
+              <&>
+              <&!>
+              <s>
+              <#>
+              <@>
+              <^>
               parse-file
               parse-string
               parse-port)
@@ -44,10 +58,12 @@
   (use streams-utils)
 
   (define-record ctxt
+    name
     input-stream
     pos
     line
     col
+    err-pos
     err-line
     err-col
     err-msg
@@ -59,15 +75,18 @@
     (ctxt-pos-set!  ctxt  0)
     (ctxt-line-set! ctxt 0)
     (ctxt-col-set!  ctxt 0)
+    (ctxt-err-pos-set! ctxt 0)
     (ctxt-err-line-set! ctxt 0)
     (ctxt-err-col-set! ctxt 0)
     (ctxt-err-msg-set! ctxt "")
     (ctxt-cache-set! ctxt (make-hash-table))
     (ctxt-combinator-ids-set! ctxt (make-hash-table)))
 
-  (define (%make-ctxt s)
+  (define (%make-ctxt n s)
     (let ((ctxt (make-ctxt
+                  n
                   s
+                  0
                   0
                   0
                   0
@@ -95,6 +114,7 @@
                 (ctxt-pos ctxt)
                 (ctxt-line ctxt)
                 (ctxt-col ctxt)
+                (ctxt-err-pos ctxt)
                 (ctxt-err-line ctxt)
                 (ctxt-err-col ctxt)
                 (ctxt-err-msg ctxt))))
@@ -105,9 +125,10 @@
         (ctxt-col-set! ctxt   (list-ref r 3))
         (if (not r)
           (begin
-            (ctxt-err-line-set! ctxt (list-ref r 4))
-            (ctxt-err-col-set! ctxt  (list-ref r 5))
-            (ctxt-err-msg-set! ctxt  (list-ref r 6))))
+            (ctxt-err-pos-set! ctxt (list-ref r 4))
+            (ctxt-err-line-set! ctxt (list-ref r 5))
+            (ctxt-err-col-set! ctxt  (list-ref r 6))
+            (ctxt-err-msg-set! ctxt  (list-ref r 7))))
         rr)))
 
   ;; end of stream
@@ -117,7 +138,9 @@
 
   ;; error report
   (define (report-error ctxt)
-    (display "parsing failed:\n")
+    (display "parsing \'")
+    (display (ctxt-name ctxt))
+    (display "\' failed:\n")
     (display (ctxt-err-msg ctxt))
     (display "@(")
     (display (ctxt-err-line ctxt))
@@ -126,6 +149,7 @@
     (display ")\n"))
 
   (define (record-error ctxt . msg)
+    (ctxt-err-pos-set!  ctxt (ctxt-pos ctxt))
     (ctxt-err-line-set! ctxt (ctxt-line ctxt))
     (ctxt-err-col-set!  ctxt (ctxt-col ctxt))
     (ctxt-err-msg-set!  ctxt msg))
@@ -150,6 +174,7 @@
              (begin
                (record-error ctxt "expect:" c ";but got:" ic)
                #f))))))
+  (define <c> char)
 
   ;; seqence of parsers
   (define (seq fp . lst)
@@ -172,6 +197,7 @@
            (begin
              (ctxt-pos-set! ctxt cpos)
              #f)))))
+  (define <and> seq)
 
   ;; ordered selective parsers
   (define (sel . lst)
@@ -185,6 +211,7 @@
                     #f))))
         #f
         lst)))
+  (define <or> sel)
 
   ;; repeat 0 - infinite times
   (define (rep p)
@@ -195,15 +222,18 @@
                       (lp (append r (list rr)))
                       r)))))
         (lp `()))))
+  (define <*> rep)
 
   ;; null
   (define (zero)
     (lambda (ctxt)
       ""))
+  (define <null> zero)
 
   ;; appear once or zero
   (define (one? p)
     (sel p (zero)))
+  (define <?> one?)
 
   ;; repeat 1 - infinite times
   (define (rep+ p)
@@ -211,6 +241,7 @@
       (seq p (rep p))
       (lambda (o)
         (cons (car o) (cadr o)))))
+  (define <+> rep+)
 
   ;; predicate
   (define (pred p pd #!optional (n #f))
@@ -228,9 +259,11 @@
                 (ctxt-pos-set! ctxt cpos)
                 #f)))
           #f))))
+  (define <&> pred)
 
   (define (pred! p pd)
     (pred p pd #t))
+  (define <&!> pred!)
 
   ;; end of file
   (define (eof)
@@ -240,6 +273,24 @@
         (begin
           (record-error ctxt "expect: end of file")
           #f))))
+
+  ;; neg
+  (define (neg p)
+    (lambda (ctxt)
+      (let ((cpos (ctxt-pos ctxt))
+            (r (p ctxt)))
+        (if r
+          (begin
+            (ctxt-pos-set! ctxt cpos)
+            (record-error ctxt "expect: parsing failure")
+            #f)
+          (begin
+            (ctxt-pos-set! ctxt (+ (ctxt-err-pos ctxt) 1))
+            (let ((s (stream-drop cpos
+                       (stream-take (ctxt-pos ctxt)
+                         (ctxt-input-stream ctxt)))))
+              (list->string (stream->list s))))))))
+  (define <^> neg)
 
   ;; a string
   (define (str s)
@@ -251,6 +302,7 @@
           (string->list s)))
       (lambda (cs)
         (apply string-append cs))))
+  (define <s> str)
 
   ;; match one char in a string
   (define (one-of str)
@@ -272,6 +324,7 @@
 	    (if fail
   	      (fail))
 	    #f)))))
+  (define <@> act)
 
   ;; join 
   (define (join p0 p1)
@@ -289,6 +342,7 @@
       p
       (lambda (o)
         (list-ref o index))))
+  (define <#> ind)
 
   ;; lazy
   (define (%lazy p)
@@ -343,14 +397,14 @@
      (parse-string str (regexp-parser)))
 
    (define (regexp-match r str)
-     (let* ((ctxt (%make-ctxt (list->stream (string->list str))))
+     (let* ((ctxt (%make-ctxt str (list->stream (string->list str))))
             (rr ((regexp r) ctxt)))
       (if rr rr
         #f)))
 
   ;; parse
-  (define (parse p s)
-    (let* ((ctxt (%make-ctxt s))
+  (define (parse p n s)
+    (let* ((ctxt (%make-ctxt n s))
            (r (p ctxt)))
       (if r r
         (begin
@@ -359,14 +413,14 @@
 
   ;; parse file
   (define (parse-file file p)
-    (parse p (file->stream file)))
+    (parse p file (file->stream file)))
 
   ;; parse string
   (define (parse-string str p)
-    (parse p (list->stream (string->list str))))
+    (parse p str (list->stream (string->list str))))
   
   ;; parse from port
   (define (parse-port port p)
-    (parse p (port->stream port))))
+    (parse p (port-name) (port->stream port))))
 
 
