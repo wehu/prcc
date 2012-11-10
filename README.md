@@ -52,6 +52,8 @@ Prcc is a PEG-like combinator parser library by packrat parsing
   * alias `<#>`
 * `(neg parser)` : take parser failure as pass
   * alias `<^>`
+* `(regexp-parser string)`
+  * alias `<r>`
 * `(lazy parser)`
 * `(parse-file filename parser)`
 * `(parse-string string parser)`

@@ -30,6 +30,7 @@
               ind
 	      lazy
               neg
+              regexp-parser
               ;; aliases
               <c>
               <and>
@@ -43,6 +44,7 @@
               <#>
               <@>
               <^>
+              <r>
               parse-file
               parse-string
               parse-port)
@@ -55,6 +57,7 @@
   (use srfi-69)
   (use streams-utils)
   (use type-checks)
+  (use regex)
 
   (define-record ctxt
     name
@@ -376,6 +379,25 @@
          ((lambda (c)
             (check-procedure 'lazy p)
             (p c)) ctxt)))))
+
+  ;; regexp
+  (define (regexp-parser r)
+    (check-string 'regexp-parser r)
+    (lambda (ctxt)
+      (let ((str (list->string
+                   (stream->list (stream-take-while
+                     (lambda (c) (not (equal? c #\newline)))
+                     (ctxt-input-stream ctxt))))))
+        (let ((rr (string-search (regexp (string-append "^" r)) str)))
+          (if rr
+            (begin
+              (ctxt-pos-set! ctxt (+ (ctxt-pos ctxt) (string-length (car rr))))
+              (ctxt-col-set! ctxt (+ (ctxt-col ctxt) (string-length (car rr))))
+              (car rr))
+            (begin
+              (record-error ctxt "regexp \'" r "\' match failed")
+              #f))))))
+  (define <r> regexp-parser)
 
   ;; parse
   (define (parse p n s)
