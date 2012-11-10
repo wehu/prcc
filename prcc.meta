@@ -1,6 +1,8 @@
 ((files "prcc.setup"
         "prcc.scm")
  (licence "Apache")
+ (category "parsing")
+ (depends srfi-41 streams-utils type-checks regex)
  (author "Wei Hu")
  (synopsis "Prcc is a PEG-like combinator parser library by packrat parsing"))
 
