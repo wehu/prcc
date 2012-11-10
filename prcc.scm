@@ -30,8 +30,6 @@
               ind
 	      lazy
               neg
-	      regexp
-              regexp-match
               ;; aliases
               <c>
               <and>
@@ -376,53 +374,6 @@
          ((lambda (c)
             (check-procedure 'lazy p)
             (p c)) ctxt)))))
-
-  ;; regexp
-  (define (regexp-parser)
-    (letrec ((lw (act (one-of "abcdefghijklmnopqrstuvwxyz") (lambda (o)
-                  (str o))))
-	     (uw (act (one-of "ABCDEFGHIJKLMNOPQRSTUVWZYZ") (lambda (o)
-                  (str o))))
-	     (w  (sel lw uw (char #\_)))
-	     (d (act (one-of "0123456789") (lambda (o)
-                  (str o))))
-	     (dot (act (char #\.) (lambda (o)
-                   (one-of "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWZYZ_0123456789"))))
-	     (aw (act (str "\\w") (lambda (o)
-                   (one-of "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWZYZ_0123456789"))))
-             (ad (act (str "\\d") (lambda (o)
-                   (one-of "0123456789"))))
-	     (^ (act (char #\^) (lambda (o)
-                  (str o))))
-	     ($ (act (char #\$) (lambda (o)
-                  (eof))))
-	     (a  (sel (lazy es) (lazy ee) aw ad w d dot ^ $))
-	     (o? (act (seq a (char #\?)) (lambda (o)
-                   (one? (car o)))))
-	     (r* (act (seq a (char #\*)) (lambda (o)
-                   (rep (car o)))))
-	     (r+ (act (seq a (char #\+)) (lambda (o)
-                   (rep+ (car o)))))
-	     (es (act (seq (char #\[) (rep+ a) (char #\])) (lambda (o)
-                   (apply sel (cadr o)))))
-	     (s  (act (seq (lazy e) (char #\|) (lazy e)) (lambda (o)
-                   (sel (car o) (caddr o)))))
-             (ss (act (seq (char #\() s (char #\))) (lambda (o)
-                   (cadr o))))
-	     (ee (act (seq (char #\() (lazy e) (char #\))) (lambda (o)
-                   (cadr o))))
-	     (e  (act (rep (sel o? ss r* r+ a)) (lambda (o)
-                   (apply seq o)))))
-      (ind (seq (sel s e) (eof)) 0)))
-
-   (define (regexp str)
-     (parse-string str (regexp-parser)))
-
-   (define (regexp-match r str)
-     (let* ((ctxt (%make-ctxt str (list->stream (string->list str))))
-            (rr ((regexp r) ctxt)))
-      (if rr rr
-        #f)))
 
   ;; parse
   (define (parse p n s)
