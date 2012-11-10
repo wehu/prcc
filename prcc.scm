@@ -65,12 +65,11 @@
 
   (use srfi-1)
   (use srfi-14)
-  (use srfi-41)
   (use srfi-69)
-  (use streams-utils)
   (use type-checks)
   (use regex)
   (use data-structures)
+  (use utils)
 
   (define-record ctxt
     name
@@ -470,7 +469,7 @@
   (define (parse-file file p)
     (check-string 'parse-file file)
     (check-procedure 'parse-file p)
-    (parse p file (list->string (stream->list (file->stream file)))))
+    (parse p file (read-all file)))
 
   ;; parse string
   (define (parse-string str p)
@@ -482,6 +481,6 @@
   (define (parse-port port p)
     (check-input-port 'parse-port port)
     (check-procedure 'parse-port p)
-    (parse p (port-name) (list->string (stream->list (port->stream port))))))
+    (parse p (port-name) (read-all port))))
 
 
