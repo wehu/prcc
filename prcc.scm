@@ -457,7 +457,7 @@
     (let ((l (fold (lambda (p i)
                   (if (equal? i `())
                     (list p)
-                    (append i (list (<s+>) p))))
+                    (append i (list (<s*>) p))))
                `()
                lst)))
       (even (apply seq l))))
