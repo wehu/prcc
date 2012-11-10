@@ -390,10 +390,10 @@
                      (ctxt-input-stream ctxt))))))
         (let ((rr (string-search (regexp (string-append "^" r)) str)))
           (if rr
-            (begin
-              (ctxt-pos-set! ctxt (+ (ctxt-pos ctxt) (string-length (car rr))))
-              (ctxt-col-set! ctxt (+ (ctxt-col ctxt) (string-length (car rr))))
-              (car rr))
+            (let ((rrr (car rr)))
+              (ctxt-pos-set! ctxt (+ (ctxt-pos ctxt) (string-length rrr)))
+              (ctxt-col-set! ctxt (+ (ctxt-col ctxt) (string-length rrr)))
+              rrr)
             (begin
               (record-error ctxt "regexp \'" r "\' match failed")
               #f))))))
