@@ -25,32 +25,33 @@ Prcc is a PEG-like combinator parser library by packrat parsing
 
 ### Combinators
 
-* (char c) : generate a parser that read a char
-  * alias <c>
-* (seq parser [parsers ...]) : sequence parser
-  * alias <and>
-* (sel parser [parsers ...]) : branch parser and ordered selected
-  * alias <or>
-* (one? parser) : appear 0 or 1 time
-  * alias <?>
-* (rep parser) : repeat 0 to infinite times
-  * alias <*>
-* (rep+ parser) : repeat 1 to infinite times
-  * alias <+>
-* (pred parser0 parser1) : lookahead predicate parser1
-  * alias <&>
-* (pred! parser0 parser1) : negative lookahead
-  * alias <&!>
-* (eof) : end of file
-* (str string) : a string parser
-  * alias <s>
-* (one-of string) : parse one of chars in string
-* (join parser0 parser1) : repeat parser0 with parser1 inserted
-* (act parser [succ proc] [fail proc]) : mutate parser and be used to process the output of a parser
-  * alias <@>
-* (ind seq-parser index) : return the value that is indicated by index
-  * alias <#>
-* (lazy parser)
-* (parse-file filename parser)
-* (parse-string string parser)
-* (parse-port port parser)
+* `(char c)` : generate a parser that read a char
+  * alias `<c>`
+* `(seq parser [parsers ...])` : sequence parser
+  * alias `<and>`
+* `(sel parser [parsers ...])` : branch parser and ordered selected
+  * alias `<or>`
+* `(one? parser)` : appear 0 or 1 time
+  * alias `<?>`
+* `(rep parser)` : repeat 0 to infinite times
+  * alias `<*>`
+* `(rep+ parser)` : repeat 1 to infinite times
+  * alias `<+>`
+* `(pred parser0 parser1)` : lookahead predicate parser1
+  * alias `<&>`
+* `(pred! parser0 parser1)` : negative lookahead
+  * alias `<&!>`
+* `(eof)` : end of file
+* `(str string)` : a string parser
+  * alias `<s>`
+* `(one-of string)` : parse one of chars in string
+* `(join parser0 parser1)` : repeat parser0 with parser1 inserted
+* `(act parser [succ proc] [fail proc])` : mutate parser and be used to process the output of a parser
+  * alias `<@>`
+* `(ind seq-parser index)` : return the value that is indicated by index
+  * alias `<#>`
+* `(lazy parser)`
+* `(parse-file filename parser)`
+* `(parse-string string parser)`
+* `(parse-port port parser)`
+
