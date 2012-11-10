@@ -5,3 +5,7 @@
 (display (parse-string "bccjabc" p0))
 (newline)
 
+(define p1 (<and> (<w+>)
+                  (eof)))
+(display (parse-string "bccjabc" p1))
+(newline)

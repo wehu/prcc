@@ -45,6 +45,14 @@
               <@>
               <^>
               <r>
+              ;; helpers
+              <w>
+              <space>
+              <w*>
+              <s*>
+              <w+>
+              <s+>
+              ;;
               parse-file
               parse-string
               parse-port)
@@ -398,6 +406,26 @@
               (record-error ctxt "regexp \'" r "\' match failed")
               #f))))))
   (define <r> regexp-parser)
+
+  ;; helpers
+  (define (<w>)
+    (<r> "\\w"))
+
+  (define (<space>)
+    (<or> (<r> "\\s")
+          (<c> #\newline)))
+
+  (define (<w*>)
+    (<r> "\\w"))
+
+  (define (<s*>)
+    (<*> <space>))
+
+  (define (<w+>)
+    (<r> "\\w+"))
+
+  (define (<s+>)
+    (<+> <space>))
 
   ;; parse
   (define (parse p n s)
