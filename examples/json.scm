@@ -76,7 +76,7 @@
         (<and_> (<c> #\[) elements (<c> #\]))))
 
 (define parser
-  (<and> (join+ (<s*>) value) (eof)))
+  (<and> (odd (join+ (<s*>) value)) (eof)))
 
 (for-each (lambda (f)
   (display (parse-file f parser))
