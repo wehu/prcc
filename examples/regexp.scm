@@ -43,5 +43,6 @@
 (define (regexp-match r str)
   (parse-string str (regexp r)))
 
-(display (regexp-match "a?[abc]\\w" "bc"))
+(display (regexp-match "a?[abc]\\w" "abc"))
+(newline)
 

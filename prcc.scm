@@ -52,6 +52,10 @@
               <s*>
               <w+>
               <s+>
+              even
+              odd
+              seq_
+              <and_>
               ;;
               parse-file
               parse-string
@@ -428,6 +432,36 @@
 
   (define (<s+>)
     (<+> (<space>)))
+
+  (define (even p)
+    (act p
+      (lambda (o)
+        (car (fold (lambda (oo i)
+          (if (even? (cdr i))
+            (cons (append (car i) (list oo)) (+ (cdr i) 1))
+            (cons (car i) (+ (cdr i) 1))))
+          (cons `() 0)
+          o)))))
+
+  (define (odd p)
+    (act p
+      (lambda (o)
+        (car (fold (lambda (oo i)
+          (if (odd? (cdr i))
+            (cons (append (car i) (list oo)) (+ (cdr i) 1))
+            (cons (car i) (+ (cdr i) 1))))
+          (cons `() 0)
+          o)))))
+
+  (define (seq_ . lst)
+    (let ((l (fold (lambda (p i)
+                  (if (equal? i `())
+                    (list p)
+                    (append i (list (<s+>) p))))
+               `()
+               lst)))
+      (even (apply seq l))))
+  (define <and_> seq_)
 
   ;; parse
   (define (parse p n s)

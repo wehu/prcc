@@ -18,6 +18,7 @@
 (include "rep.scm")
 (include "sel.scm")
 (include "seq.scm")
+(include "seq_.scm")
 (include "regexp.scm")
 
 )
