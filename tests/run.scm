@@ -1,5 +1,9 @@
 (use prcc)
 
+(use test)
+
+(test-group "prcc"
+
 (include "act.scm")
 (include "eof.scm")
 (include "ind.scm")
@@ -16,4 +20,4 @@
 (include "seq.scm")
 (include "regexp.scm")
 
-
+)
