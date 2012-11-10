@@ -42,20 +42,20 @@ Prcc is a PEG-like combinator parser library by packrat parsing
 * `(pred! parser0 parser1)` : negative lookahead
   * alias `<&!>`
 * `(eof)` : end of file
-* `(str string)` : a string parser
-  * alias `<s>`
-* `(one-of string)` : parse one of chars in string
-* `(join parser0 parser1)` : repeat parser0 with parser1 inserted
 * `(act parser [succ proc] [fail proc])` : mutate parser and be used to process the output of a parser
   * alias `<@>`
-* `(ind seq-parser index)` : return the value that is indicated by index
-  * alias `<#>`
 * `(neg parser)` : take parser failure as pass
   * alias `<^>`
 * `(regexp-parser string)`
   * alias `<r>`
 * `(lazy parser)`
 * helpers
+  * `(str string)` : a string parser
+    * alias `<s>`
+  * `(one-of string)` : parse one of chars in string
+  * `(join parser0 parser1)` : repeat parser0 with parser1 inserted
+  * `(ind seq-parser index)` : return the value that is indicated by index
+    * alias `<#>`
   * `<w>` : word
   * `<w*>`
   * `<w+>`
