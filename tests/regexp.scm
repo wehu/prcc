@@ -13,6 +13,6 @@
 (test (list "bccjabc" "") (parse-string "bccjabc" p1))
 
 (define p2 (<and> (<s*>)))
-(test (list (list " " "\n" "\t" " " " " " " " " " ")) (parse-string " \n\t     " p2))
+(test (list " \n\t     ") (parse-string " \n\t     " p2))
 
 (test-end "regexp")

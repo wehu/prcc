@@ -70,6 +70,7 @@
   (use streams-utils)
   (use type-checks)
   (use regex)
+  (use data-structures)
 
   (define-record ctxt
     name
@@ -147,8 +148,7 @@
 
   ;; end of stream
   (define (end-of-stream? i ctxt)
-    (let ((es (stream-drop i (ctxt-input-stream ctxt))))
-      (stream-null? es)))
+    (= i (string-length (ctxt-input-stream ctxt))))
 
   ;; error report
   (define (report-error ctxt)
@@ -176,7 +176,7 @@
         (begin
           (record-error ctxt "end of stream")
           #f)
-        (let ((ic (stream-ref (ctxt-input-stream ctxt) (ctxt-pos ctxt))))
+        (let ((ic (string-ref (ctxt-input-stream ctxt) (ctxt-pos ctxt))))
           (if (equal? ic c)
              (begin
                (ctxt-pos-set! ctxt (+ (ctxt-pos ctxt) 1))
@@ -312,10 +312,8 @@
             #f)
           (begin
             (ctxt-pos-set! ctxt (+ (ctxt-err-pos ctxt) 1))
-            (let ((s (stream-drop cpos
-                       (stream-take (ctxt-pos ctxt)
-                         (ctxt-input-stream ctxt)))))
-              (list->string (stream->list s))))))))
+            (let ((s (substring (ctxt-input-stream ctxt) cpos (ctxt-pos ctxt))))
+              s))))))
   (define <^> neg)
 
   ;; a string
@@ -357,7 +355,7 @@
                 (check-procedure 'act fail)
                 (fail (if (end-of-stream? (ctxt-err-pos ctxt) ctxt)
                         ""
-                        (stream-ref (ctxt-input-stream ctxt) (ctxt-err-pos ctxt))))))
+                        (string-ref (ctxt-input-stream ctxt) (ctxt-err-pos ctxt))))))
 	    #f)))))
   (define <@> act)
 
@@ -396,17 +394,14 @@
   (define (regexp-parser r)
     (check-string 'regexp-parser r)
     (lambda (ctxt)
-      (let ((str (list->string
-                   (stream->list (stream-take-while
-                     (lambda (c) (not (equal? c #\newline)))
-                     (stream-drop
-                       (ctxt-pos ctxt)
-                       (ctxt-input-stream ctxt)))))))
+      (let ((str (substring (ctxt-input-stream ctxt) (ctxt-pos ctxt))))
         (let ((rr (string-search (regexp (string-append "^" r)) str)))
           (if rr
             (let ((rrr (car rr)))
               (ctxt-pos-set! ctxt (+ (ctxt-pos ctxt) (string-length rrr)))
-              (ctxt-col-set! ctxt (+ (ctxt-col ctxt) (string-length rrr)))
+              (let ((sr (string-split rrr "\n" #t)))
+                (ctxt-col-set! ctxt (+ (ctxt-col ctxt) (string-length (car (reverse sr)))))
+                (ctxt-line-set! ctxt (+ (ctxt-line ctxt) (- (length sr) 1))))
               rrr)
             (begin
               (record-error ctxt "regexp \'" r "\' match failed")
@@ -418,20 +413,19 @@
     (<r> "\\w"))
 
   (define (<space>)
-    (<or> (<c> #\newline)
-          (<r> "\\s")))
+    (<r> "\\s"))
 
   (define (<w*>)
     (<r> "\\w*"))
 
   (define (<s*>)
-    (<*> (<space>)))
+    (<r> "\\s*"))
 
   (define (<w+>)
     (<r> "\\w+"))
 
   (define (<s+>)
-    (<+> (<space>)))
+    (<r> "\\s+"))
 
   (define (even p)
     (act p
@@ -476,18 +470,18 @@
   (define (parse-file file p)
     (check-string 'parse-file file)
     (check-procedure 'parse-file p)
-    (parse p file (file->stream file)))
+    (parse p file (list->string (stream->list (file->stream file)))))
 
   ;; parse string
   (define (parse-string str p)
     (check-string 'parse-string str)
     (check-procedure 'parse-string p)
-    (parse p str (list->stream (string->list str))))
+    (parse p str str))
   
   ;; parse from port
   (define (parse-port port p)
     (check-input-port 'parse-port port)
     (check-procedure 'parse-port p)
-    (parse p (port-name) (port->stream port))))
+    (parse p (port-name) (list->string (stream->list (port->stream port))))))
 
 

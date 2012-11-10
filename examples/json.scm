@@ -13,7 +13,7 @@
         (<c> #\E)))
 
 (define digits
-  (<r> "[1-9]\\d*|\\d"))
+  (<r> "\\d+"))
 
 (define expp
   (<and_> e digits))
