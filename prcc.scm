@@ -345,15 +345,12 @@
   (define <#> ind)
 
   ;; lazy
-  (define (%lazy p)
-    (lambda (ctxt)
-      (p ctxt)))
-
   (define-syntax lazy
     (syntax-rules ()
       ((_ p)
-       (%lazy (lambda (ctxt)
-		(p ctxt))))))
+       (lambda (ctxt)
+         ((lambda (c)
+            (p c)) ctxt)))))
 
   ;; regexp
   (define (regexp-parser)
