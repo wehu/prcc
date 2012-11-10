@@ -386,7 +386,7 @@
        (lambda (ctxt)
          ((lambda (c)
             (check-procedure 'lazy p)
-            (p c)) ctxt)))))
+            (apply-c p c)) ctxt)))))
 
   ;; regexp
   (define (regexp-parser r)
