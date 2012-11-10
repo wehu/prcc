@@ -14,10 +14,10 @@ Prcc is a PEG-like combinator parser library by packrat parsing
 	(use prcc)
 
 	(define parser
-	  (seq
-	    (act (str "hello")
+	  (<and>
+	    (<@> (<s> "hello")
               (lambda (o) "hello "))
-	    (str "world")
+	    (<s> "world")
 	    (eof)))
 
 	(display (parse-string "helloworld" parser))
@@ -50,6 +50,8 @@ Prcc is a PEG-like combinator parser library by packrat parsing
   * alias `<@>`
 * `(ind seq-parser index)` : return the value that is indicated by index
   * alias `<#>`
+* `(neg parser)` : take parser failure as pass
+  * alias `<^>`
 * `(lazy parser)`
 * `(parse-file filename parser)`
 * `(parse-string string parser)`

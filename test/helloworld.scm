@@ -1,10 +1,10 @@
 (use prcc)
 
 (define parser
-  (seq
-    (act (str "hello")
+  (<and>
+    (<@> (<s> "hello")
       (lambda (o) "hello "))
-    (str "world")
+    (<s> "world")
     (eof)))
 
 (display (parse-string "helloworld" parser))
