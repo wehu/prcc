@@ -1,17 +1,20 @@
 (use prcc)
 
+(use test)
+
+(test-begin "act")
+
 (define p0 (<and> (char #\a)
                 (<@> (one-of "abc")
                   (lambda (o) "ooo"))
                 (eof)))
-(display (parse-string "ab" p0))
-(newline)
+(test (list "a" "ooo" "") (parse-string "ab" p0))
 
 (define p1 (<and> (char #\a)
                 (<@> (one-of "abc")
                   (lambda (o) "ooo")
                   (lambda (o) (display "meeting \'e\'")))
                 (eof)))
-(display (parse-string "ae" p1))
-(newline)
+(test-assert (not (parse-string "ae" p1)))
 
+(test-end "act")

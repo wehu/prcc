@@ -1,7 +1,14 @@
 (use prcc)
 
+(use test)
+
+
+(test-begin "repp")
+
 (define p0 (<+> (char #\a)))
-(display (parse-string "aaaaa" p0))
-(newline)
-(display (parse-string "b" p0))
-(newline)
+
+(test (list "a" "a" "a" "a" "a") (parse-string "aaaaa" p0))
+
+(test-assert (not (parse-string "b" p0)))
+
+(test-end "repp")

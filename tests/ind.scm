@@ -1,12 +1,15 @@
 (use prcc)
 
+(use test)
+
+(test-begin "ind")
+
 (define p0 (<#> (<and> (char #\a)
                        (one-of "bc")) 0))
-(display (parse-string "abaca" p0))
-(newline)
+(test "a" (parse-string "abaca" p0))
 
 (define p1 (<#> (<and> (char #\a)
                        (one-of "bc")) 1))
-(display (parse-string "abaca" p1))
-(newline)
+(test "b" (parse-string "abaca" p1))
 
+(test-end "ind")
