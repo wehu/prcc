@@ -78,7 +78,19 @@
 (define parser
   (<and> (odd (join+ (<s*>) value)) (eof)))
 
-(for-each (lambda (f)
-  (display (parse-file f parser))
-  (newline))
-  (cdr (argv)))
+(use test)
+
+(test-group "json"
+
+  (test-begin "json")
+  
+  (define result #f)
+  
+  (for-each (lambda (f)
+    (set! result (parse-file f parser))
+    (test-assert result)
+    (display result)
+    (newline))
+    (cdr (argv)))
+  
+  (test-end "json"))
