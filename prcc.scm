@@ -319,28 +319,6 @@
               s))))))
   (define <^> neg)
 
-  ;; a string
-  (define (str s)
-    (check-string 'str s)
-    (act
-      (apply seq
-        (map
-          (lambda (c)
-            (char c))
-          (string->list s)))
-      (lambda (cs)
-        (apply string-append cs))))
-  (define <s> str)
-
-  ;; match one char in a string
-  (define (one-of str)
-    (check-string 'one-of str)
-    (apply sel
-      (map
-        (lambda (c)
-          (char c))
-        (string->list str))))
-
   ;; add action for parser to process the output
   (define (act p #!optional (succ #f) (fail #f))
     (check-procedure 'act p)
@@ -361,28 +339,6 @@
                         (string-ref (ctxt-input-stream ctxt) (ctxt-err-pos ctxt))))))
 	    #f)))))
   (define <@> act)
-
-  ;; join 
-  (define (join+ p0 p1)
-    (check-procedure 'join+ p0)
-    (check-procedure 'join+ p1)
-    (act
-      (seq p0 (act
-                (rep (seq p1 p0))
-                (lambda (o)
-                  (apply append o))))
-      (lambda (o)
-        (cons (car o) (cadr o)))))
-
-  ;; index
-  (define (ind p index)
-    (check-procedure 'ind p)
-    (check-number 'ind index)
-    (act
-      p
-      (lambda (o)
-        (list-ref o index))))
-  (define <#> ind)
 
   ;; lazy
   (define-syntax lazy
@@ -415,6 +371,51 @@
   (define <r> regexp-parser)
 
   ;; helpers
+
+  ;; a string
+  (define (str s)
+    (check-string 'str s)
+    (act
+      (apply seq
+        (map
+          (lambda (c)
+            (char c))
+          (string->list s)))
+      (lambda (cs)
+        (apply string-append cs))))
+  (define <s> str)
+
+  ;; match one char in a string
+  (define (one-of str)
+    (check-string 'one-of str)
+    (apply sel
+      (map
+        (lambda (c)
+          (char c))
+        (string->list str))))
+
+  ;; join
+  (define (join+ p0 p1)
+    (check-procedure 'join+ p0)
+    (check-procedure 'join+ p1)
+    (act
+      (seq p0 (act
+                (rep (seq p1 p0))
+                (lambda (o)
+                  (apply append o))))
+      (lambda (o)
+        (cons (car o) (cadr o)))))
+
+  ;; index
+  (define (ind p index)
+    (check-procedure 'ind p)
+    (check-number 'ind index)
+    (act
+      p
+      (lambda (o)
+        (list-ref o index))))
+  (define <#> ind)
+
   (define (<w>)
     (<r> "\\w"))
 
