@@ -151,7 +151,7 @@
 
   ;; end of stream
   (define (end-of-stream? i ctxt)
-    (= i (string-length (ctxt-input-stream ctxt))))
+    (>= i (string-length (ctxt-input-stream ctxt))))
 
   ;; error report
   (define (report-error ctxt)
@@ -307,7 +307,7 @@
     (check-procedure 'neg p)
     (lambda (ctxt)
       (let ((cpos (ctxt-pos ctxt))
-            (r (p ctxt)))
+            (r (apply-c p ctxt)))
         (if r
           (begin
             (ctxt-pos-set! ctxt cpos)
@@ -323,7 +323,7 @@
   (define (act p #!optional (succ #f) (fail #f))
     (check-procedure 'act p)
     (lambda (ctxt)
-      (let ((pr (p ctxt)))
+      (let ((pr (apply-c p ctxt)))
         (if pr
 	  (if succ
             (begin
@@ -350,6 +350,15 @@
             (p c)) ctxt)))))
 
   ;; regexp
+
+  (define (update-line-col str ctxt)
+    (let* ((sr (string-split str "\n" #t))
+           (sll (string-length (car (reverse sr)))))
+      (if (= (length sr) 1)
+        (ctxt-col-set! ctxt (+ (ctxt-col ctxt) sll))
+        (ctxt-col-set! ctxt sll))
+        (ctxt-line-set! ctxt (+ (ctxt-line ctxt) (- (length sr) 1)))))
+
   (define (regexp-parser r)
     (check-string 'regexp-parser r)
     (lambda (ctxt)
@@ -358,12 +367,7 @@
           (if rr
             (let ((rrr (car rr)))
               (ctxt-pos-set! ctxt (+ (ctxt-pos ctxt) (string-length rrr)))
-              (let* ((sr (string-split rrr "\n" #t))
-                     (sll (string-length (car (reverse sr)))))
-                (if (= (length sr) 1)
-                  (ctxt-col-set! ctxt (+ (ctxt-col ctxt) sll))
-                  (ctxt-col-set! ctxt sll))
-                (ctxt-line-set! ctxt (+ (ctxt-line ctxt) (- (length sr) 1))))
+              (update-line-col rrr ctxt)
               rrr)
             (begin
               (record-error ctxt "regexp \'" r "\' match failed")
@@ -375,14 +379,24 @@
   ;; a string
   (define (str s)
     (check-string 'str s)
-    (act
-      (apply seq
-        (map
-          (lambda (c)
-            (char c))
-          (string->list s)))
-      (lambda (cs)
-        (apply string-append cs))))
+    (let ((l (string-length s)))
+      (lambda (ctxt)
+        (let ((npos (+ (ctxt-pos ctxt) l)))
+          (if (not (end-of-stream? (- npos 1) ctxt))
+            (let ((ss (substring (ctxt-input-stream ctxt)
+                                 (ctxt-pos ctxt)
+                                 npos)))
+              (if (equal? s ss)
+                (begin
+                  (ctxt-pos-set! ctxt npos)
+                  (update-line-col ss ctxt)
+                  s)
+                (begin
+                  (record-error ctxt "expect:" s ";but got:" ss)
+                  #f)))
+            (begin
+              (record-error ctxt "expect:" s ";but got: end of file")
+              #f))))))
   (define <s> str)
 
   ;; match one char in a string
