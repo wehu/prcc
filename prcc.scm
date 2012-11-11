@@ -362,16 +362,20 @@
   (define (regexp-parser r)
     (check-string 'regexp-parser r)
     (lambda (ctxt)
-      (let ((str (substring (ctxt-input-stream ctxt) (ctxt-pos ctxt))))
-        (let ((rr (string-search (regexp (string-append "^" r)) str)))
-          (if rr
-            (let ((rrr (car rr)))
-              (ctxt-pos-set! ctxt (+ (ctxt-pos ctxt) (string-length rrr)))
-              (update-line-col rrr ctxt)
-              rrr)
-            (begin
-              (record-error ctxt "regexp \'" r "\' match failed")
-              #f))))))
+      (if (not (end-of-stream? (ctxt-pos ctxt) ctxt))
+        (let ((str (substring (ctxt-input-stream ctxt) (ctxt-pos ctxt))))
+          (let ((rr (string-search (regexp (string-append "^" r)) str)))
+            (if rr
+              (let ((rrr (car rr)))
+                (ctxt-pos-set! ctxt (+ (ctxt-pos ctxt) (string-length rrr)))
+                (update-line-col rrr ctxt)
+                rrr)
+              (begin
+                (record-error ctxt "regexp \'" r "\' match failed")
+                #f))))
+         (begin
+           (record-error ctxt "expect:" r ";but got: end of file")
+           #f))))
   (define <r> regexp-parser)
 
   ;; helpers
