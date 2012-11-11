@@ -42,7 +42,7 @@ Prcc is a PEG-like combinator parser library by packrat parsing
 * `(pred! parser0 parser1)` : negative lookahead
   * alias `<&!>`
 * `(eof)` : end of file
-* `(act parser [succ-proc] [fail: proc])` : mutate parser and be used to process the output of a parser
+* `(act parser [succ-proc] [fail-proc])` : mutate parser and be used to process the output of a parser
   * alias `<@>`
 * `(neg parser)` : take parser failure as pass
   * alias `<^>`

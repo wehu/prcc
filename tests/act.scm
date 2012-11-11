@@ -13,7 +13,7 @@
 (define p1 (<and> (char #\a)
                 (<@> (one-of "abc")
                   (lambda (o) "ooo")
-                  fail: (lambda (o) (display "meeting \'e\'")))
+                  (lambda (o) (display "meeting \'e\'")))
                 (eof)))
 (test-assert (not (parse-string "ae" p1)))
 

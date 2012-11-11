@@ -342,7 +342,7 @@
         (string->list str))))
 
   ;; add action for parser to process the output
-  (define (act p #!optional (succ #f) #!key (fail #f))
+  (define (act p #!optional (succ #f) (fail #f))
     (check-procedure 'act p)
     (lambda (ctxt)
       (let ((pr (p ctxt)))
