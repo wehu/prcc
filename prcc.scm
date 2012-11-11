@@ -85,8 +85,7 @@
     err-line
     err-col
     err-msg
-    cache
-    combinator-ids)
+    cache)
 
   ;; initialize context
   (define (init-ctxt ctxt)
@@ -97,8 +96,7 @@
     (ctxt-err-line-set! ctxt 0)
     (ctxt-err-col-set! ctxt 0)
     (ctxt-err-msg-set! ctxt "")
-    (ctxt-cache-set! ctxt (make-hash-table))
-    (ctxt-combinator-ids-set! ctxt (make-hash-table)))
+    (ctxt-cache-set! ctxt (make-hash-table)))
 
   (define (%make-ctxt n s)
     (let ((ctxt (make-ctxt
@@ -111,23 +109,21 @@
                   0
                   0
                   ""
-                  (make-hash-table)
                   (make-hash-table))))
       ctxt))
 
   ;; cache computation results based on combintor and stream position
-  (define (combinator-id p ctxt)
-    (let ((cids (ctxt-combinator-ids ctxt)))
-      (if (not (hash-table-exists? cids p))
-        (hash-table-set! cids p (symbol->string (gensym))))
-      (hash-table-ref cids p)))
+  (define (combinator-cache p ctxt)
+    (let ((c (ctxt-cache ctxt)))
+      (if (not (hash-table-exists? c p))
+        (hash-table-set! c p (make-hash-table)))
+      (hash-table-ref c p)))
 
   (define (apply-c p ctxt)
-    (let* ((p-id (combinator-id p ctxt))
-           (comb-id (string-append p-id ":" (number->string (ctxt-pos ctxt))))
-           (cache (ctxt-cache ctxt)))
-      (if (not (hash-table-exists? cache comb-id))
-        (hash-table-set! cache comb-id
+    (let* ((cache (combinator-cache p ctxt))
+           (id (ctxt-pos ctxt)))
+      (if (not (hash-table-exists? cache id))
+        (hash-table-set! cache id
           (list (p ctxt)
                 (ctxt-pos ctxt)
                 (ctxt-line ctxt)
@@ -136,7 +132,7 @@
                 (ctxt-err-line ctxt)
                 (ctxt-err-col ctxt)
                 (ctxt-err-msg ctxt))))
-      (let* ((r (hash-table-ref cache comb-id))
+      (let* ((r (hash-table-ref cache id))
              (rr (list-ref r 0)))
         (ctxt-pos-set! ctxt   (list-ref r 1))
         (ctxt-line-set! ctxt  (list-ref r 2))
