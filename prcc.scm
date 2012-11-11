@@ -78,6 +78,7 @@
   (define-record ctxt
     name
     input-stream
+    input-stream-length
     pos
     line
     col
@@ -101,7 +102,8 @@
   (define (%make-ctxt n s)
     (let ((ctxt (make-ctxt
                   n
-                  s
+                  (list->vector (string->list s))
+                  (string-length s)
                   0
                   0
                   0
@@ -147,7 +149,7 @@
 
   ;; end of stream
   (define (end-of-stream? i ctxt)
-    (>= i (string-length (ctxt-input-stream ctxt))))
+    (>= (+ i 1) (ctxt-input-stream-length ctxt)))
 
   ;; error report
   (define (report-error ctxt)
@@ -175,7 +177,7 @@
         (begin
           (record-error ctxt "end of stream")
           #f)
-        (let ((ic (string-ref (ctxt-input-stream ctxt) (ctxt-pos ctxt))))
+        (let ((ic (vector-ref (ctxt-input-stream ctxt) (ctxt-pos ctxt))))
           (if (equal? ic c)
              (begin
                (ctxt-pos-set! ctxt (+ (ctxt-pos ctxt) 1))
@@ -311,8 +313,8 @@
             #f)
           (begin
             (ctxt-pos-set! ctxt (+ (ctxt-err-pos ctxt) 1))
-            (let ((s (substring (ctxt-input-stream ctxt) cpos (ctxt-pos ctxt))))
-              s))))))
+            (let ((s (subvector (ctxt-input-stream ctxt) cpos (ctxt-pos ctxt))))
+              (list->string (vector->list s))))))))
   (define <^> neg)
 
   ;; add action for parser to process the output
@@ -332,7 +334,7 @@
                 (check-procedure 'act fail)
                 (fail (if (end-of-stream? (ctxt-err-pos ctxt) ctxt)
                         ""
-                        (string-ref (ctxt-input-stream ctxt) (ctxt-err-pos ctxt))))))
+                        (vector-ref (ctxt-input-stream ctxt) (ctxt-err-pos ctxt))))))
 	    #f)))))
   (define <@> act)
 
@@ -359,7 +361,9 @@
     (check-string 'regexp-parser r)
     (lambda (ctxt)
       (if (not (end-of-stream? (ctxt-pos ctxt) ctxt))
-        (let ((str (substring (ctxt-input-stream ctxt) (ctxt-pos ctxt))))
+        (let ((str (list->string (vector->list
+                     (subvector (ctxt-input-stream ctxt) (ctxt-pos ctxt)
+                       (- (ctxt-input-stream-length ctxt) 1))))))
           (let ((rr (string-search (regexp (string-append "^" r)) str)))
             (if rr
               (let ((rrr (car rr)))
@@ -383,9 +387,10 @@
       (lambda (ctxt)
         (let ((npos (+ (ctxt-pos ctxt) l)))
           (if (not (end-of-stream? (- npos 1) ctxt))
-            (let ((ss (substring (ctxt-input-stream ctxt)
+            (let ((ss (list->string (vector->list
+                        (subvector (ctxt-input-stream ctxt)
                                  (ctxt-pos ctxt)
-                                 npos)))
+                                 npos)))))
               (if (equal? s ss)
                 (begin
                   (ctxt-pos-set! ctxt npos)
@@ -519,7 +524,7 @@
 
   ;; parse
   (define (parse p n s)
-    (let* ((ctxt (%make-ctxt n s))
+    (let* ((ctxt (%make-ctxt n (string-append s "0")))
            (r (p ctxt)))
       (if r r
         (begin
