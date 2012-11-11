@@ -434,6 +434,7 @@
     (<r> "\\s+"))
 
   (define (even p)
+    (check-procedure 'even p)
     (act p
       (lambda (o)
         (car (fold (lambda (oo i)
@@ -444,6 +445,7 @@
           o)))))
 
   (define (odd p)
+    (check-procedure 'odd p)
     (act p
       (lambda (o)
         (car (fold (lambda (oo i)
@@ -454,6 +456,9 @@
           o)))))
 
   (define (join+_ p0 p1 #!key (skip (<s*>)))
+    (check-procedure 'join+_ p0)
+    (check-procedure 'join+_ p1)
+    (check-procedure 'join+_ skip)
     (act (join+ p0 (seq skip p1 skip))
       (lambda (o)
         (car (fold (lambda (oo i)
@@ -464,11 +469,14 @@
           o)))))
 
   (define (seq_ #!rest lst #!key (skip (<s*>)))
+    (check-procedure 'seq_ skip)
     (let* ((nlst (car (fold (lambda (p i)
                      (if (cdr i)
                        (if (equal? p #:skip)
                          (cons (car i) #f)
-                         (cons (append (car i) (list p)) #t))
+                         (begin
+			   (check-procedure 'seq_ p)
+			   (cons (append (car i) (list p)) #t)))
                        (cons (car i) #t)))
                    (cons `() #t)
                    lst)))
@@ -482,10 +490,14 @@
   (define <and_> seq_)
 
   (define (rep+_ p #!key (skip (<s*>)))
+    (check-procedure 'rep+_ p)
+    (check-procedure 'rep+_ skip)
     (even (join+ p skip)))
   (define <+_> rep+_)
 
   (define (rep_ p #!key (skip (<s*>)))
+    (check-procedure 'rep_ p)
+    (check-procedure 'rep_ skip)
     (<or> (rep+_ p skip)
 	  (act (zero) (lambda (o) `()))))
   (define <*_> rep_)
