@@ -15,42 +15,41 @@
 ;;;;
 
 (module prcc (char
+              <c>
               seq
+              <and>
               sel
+              <or>
               one?
+              <?>
               rep
+              <*>
 	      rep_
+              <*_>
               rep+
+              <+>
 	      rep+_
+              <+_>
               pred
+              <&>
               pred!
+              <&!>
               eof
+              act
+              <@>
+	      lazy
+              neg
+              <^>
+              regexp-parser
+              <r>
+              ;; helpers
               str
+              <s>
               one-of
               join+
               join+_
-              act
               ind
-	      lazy
-              neg
-              regexp-parser
-              ;; aliases
-              <c>
-              <and>
-              <or>
-              <?>
-              <*>
-	      <*_>
-              <+>
-	      <+_>
-              <&>
-              <&!>
-              <s>
               <#>
-              <@>
-              <^>
-              <r>
-              ;; helpers
               <w>
               <space>
               <w*>
