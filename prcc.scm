@@ -78,6 +78,7 @@
   (define-record ctxt
     name
     input-stream
+    input-string
     input-stream-length
     pos
     line
@@ -103,6 +104,7 @@
     (let ((ctxt (make-ctxt
                   n
                   (list->vector (string->list s))
+                  s
                   (string-length s)
                   0
                   0
@@ -149,7 +151,7 @@
 
   ;; end of stream
   (define (end-of-stream? i ctxt)
-    (>= (+ i 1) (ctxt-input-stream-length ctxt)))
+    (>= i (ctxt-input-stream-length ctxt)))
 
   ;; error report
   (define (report-error ctxt)
@@ -313,8 +315,8 @@
             #f)
           (begin
             (ctxt-pos-set! ctxt (+ (ctxt-err-pos ctxt) 1))
-            (let ((s (subvector (ctxt-input-stream ctxt) cpos (ctxt-pos ctxt))))
-              (list->string (vector->list s))))))))
+            (let ((s (substring (ctxt-input-string ctxt) cpos (ctxt-pos ctxt))))
+              s))))))
   (define <^> neg)
 
   ;; add action for parser to process the output
@@ -361,10 +363,9 @@
     (check-string 'regexp-parser r)
     (lambda (ctxt)
       (if (not (end-of-stream? (ctxt-pos ctxt) ctxt))
-        (let ((str (list->string (vector->list
-                     (subvector (ctxt-input-stream ctxt) (ctxt-pos ctxt)
-                       (- (ctxt-input-stream-length ctxt) 1))))))
-          (let ((rr (string-search (regexp (string-append "^" r)) str)))
+        (let ((str (ctxt-input-string ctxt))
+              (re (regexp (string-append "^" r))))
+          (let ((rr (string-search re str (ctxt-pos ctxt))))
             (if rr
               (let ((rrr (car rr)))
                 (ctxt-pos-set! ctxt (+ (ctxt-pos ctxt) (string-length rrr)))
@@ -383,25 +384,13 @@
   ;; a string
   (define (str s)
     (check-string 'str s)
-    (let ((l (string-length s)))
-      (lambda (ctxt)
-        (let ((npos (+ (ctxt-pos ctxt) l)))
-          (if (not (end-of-stream? (- npos 1) ctxt))
-            (let ((ss (list->string (vector->list
-                        (subvector (ctxt-input-stream ctxt)
-                                 (ctxt-pos ctxt)
-                                 npos)))))
-              (if (equal? s ss)
-                (begin
-                  (ctxt-pos-set! ctxt npos)
-                  (update-line-col ss ctxt)
-                  s)
-                (begin
-                  (record-error ctxt "expect:" s ";but got:" ss)
-                  #f)))
-            (begin
-              (record-error ctxt "expect:" s ";but got: end of file")
-              #f))))))
+    (act
+      (apply seq
+        (map (lambda (c)
+          (char c))
+          (string->list s)))
+      (lambda (o)
+        (apply string-append o))))
   (define <s> str)
 
   ;; match one char in a string
@@ -524,7 +513,7 @@
 
   ;; parse
   (define (parse p n s)
-    (let* ((ctxt (%make-ctxt n (string-append s "0")))
+    (let* ((ctxt (%make-ctxt n s))
            (r (p ctxt)))
       (if r r
         (begin

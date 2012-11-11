@@ -89,7 +89,7 @@
   (for-each (lambda (f)
     (set! result (parse-file f parser))
     (test-assert result)
-  ;  (display result)
+    (display result)
     (newline))
     (cdr (argv)))
   
