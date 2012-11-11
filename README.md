@@ -54,6 +54,7 @@ Prcc is a PEG-like combinator parser library by packrat parsing
       * alias `<s>`
   * `(one-of string)` : parse one of chars in string
   * `(join+ parser0 parser1)` : repeat parser0 with parser1 inserted
+  * `(join+_ parser0 parser1 [skip: (<s*>)])` : skip spaces by default
   * `(ind seq-parser index)` : return the value that is indicated by index
       * alias `<#>`
   * `<w>` : word
@@ -62,11 +63,11 @@ Prcc is a PEG-like combinator parser library by packrat parsing
   * `<space>` : space
   * `<s*>`
   * `<s+>`
-  * `(rep_)` : skip spaces
+  * `(rep_ parser [skip: (<s*>)])` : skip spaces by default
      * alias `<*_>`
-  * `(rep+_)` : skip spaces
+  * `(rep+_ parser [skip: (<s*>)])` : skip spaces by default
      * alias `<+_>`
-  * `(seq_ parser [parser...])` : skip spaces
+  * `(seq_ parser [parser...] [skip: (<s*>)])` : skip spaces by default
      * alias `<and_>`
   * `(even parser)` : return even elements of sequence
   * `(odd parser)` : return odd elements of sequence

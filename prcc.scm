@@ -28,6 +28,7 @@
               str
               one-of
               join+
+              join+_
               act
               ind
 	      lazy
@@ -453,22 +454,40 @@
           (cons `() 0)
           o)))))
 
-  (define (seq_ . lst)
-    (let ((l (fold (lambda (p i)
+  (define (join+_ p0 p1 #!key (skip (<s*>)))
+    (act (join+ p0 (seq skip p1 skip))
+      (lambda (o)
+        (car (fold (lambda (oo i)
+            (if (even? (cdr i))
+              (cons (append (car i) (list oo)) (+ (cdr i) 1))
+              (cons (append (car i) (list (cadr oo))) (+ (cdr i) 1))))
+          (cons `() 0)
+          o)))))
+
+  (define (seq_ #!rest lst #!key (skip (<s*>)))
+    (let* ((nlst (car (fold (lambda (p i)
+                     (if (cdr i)
+                       (if (equal? p #:skip)
+                         (cons (car i) #f)
+                         (cons (append (car i) (list p)) #t))
+                       (cons (car i) #t)))
+                   (cons `() #t)
+                   lst)))
+           (l (fold (lambda (p i)
                   (if (equal? i `())
                     (list p)
-                    (append i (list (<s*>) p))))
+                    (append i (list skip p))))
                `()
-               lst)))
+               nlst)))
       (even (apply seq l))))
   (define <and_> seq_)
 
-  (define (rep+_ p)
-    (even (join+ p (<s*>))))
+  (define (rep+_ p #!key (skip (<s*>)))
+    (even (join+ p skip)))
   (define <+_> rep+_)
 
-  (define (rep_ p)
-    (<or> (rep+_ p)
+  (define (rep_ p #!key (skip (<s*>)))
+    (<or> (rep+_ p skip)
 	  (act (zero) (lambda (o) `()))))
   (define <*_> rep_)
 
