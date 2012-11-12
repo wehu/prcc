@@ -7,8 +7,10 @@
 (define p0 (<and> (char #\a)
                 (<@> (one-of "abc")
                   (lambda (o) "ooo"))
+                (<or> (<s> "abc")
+                      (<s> "c"))
                 (eof)))
-(test (list "a" "ooo" "") (parse-string "ab" p0))
+(test (list "a" "ooo" "c" "") (parse-string "abc" p0))
 
 (define p1 (<and> (char #\a)
                 (<@> (one-of "abc")

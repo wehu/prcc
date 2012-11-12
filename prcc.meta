@@ -2,7 +2,7 @@
         "prcc.scm")
  (licence "Apache")
  (category "parsing")
- (depends type-checks regex)
+ (depends type-checks regex stack)
  (test-depends test)
  (author "Wei Hu")
  (synopsis "Prcc is a PEG-like combinator parser library by packrat parsing"))

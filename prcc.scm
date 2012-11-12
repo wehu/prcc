@@ -70,6 +70,8 @@
   (use srfi-1)
   (use srfi-14)
   (use srfi-69)
+  (use srfi-13)
+  (use stack)
   (use type-checks)
   (use regex)
   (use data-structures)
@@ -78,7 +80,7 @@
   (define-record ctxt
     name
     input-stream
-    input-string
+    stack
     input-stream-length
     pos
     line
@@ -87,24 +89,14 @@
     err-line
     err-col
     err-msg
+    caching?
     cache)
 
-  ;; initialize context
-  (define (init-ctxt ctxt)
-    (ctxt-pos-set!  ctxt  0)
-    (ctxt-line-set! ctxt 0)
-    (ctxt-col-set!  ctxt 0)
-    (ctxt-err-pos-set! ctxt 0)
-    (ctxt-err-line-set! ctxt 0)
-    (ctxt-err-col-set! ctxt 0)
-    (ctxt-err-msg-set! ctxt "")
-    (ctxt-cache-set! ctxt (make-hash-table)))
-
-  (define (%make-ctxt n s)
+  (define (%make-ctxt n s #!optional (c? #f))
     (let ((ctxt (make-ctxt
                   n
-                  (list->vector (string->list s))
-                  s
+                  (substring/shared s 0)
+                  (make-stack)
                   (string-length s)
                   0
                   0
@@ -113,6 +105,7 @@
                   0
                   0
                   ""
+                  c?
                   (make-hash-table))))
       ctxt))
 
@@ -123,35 +116,42 @@
         (hash-table-set! c p (make-hash-table)))
       (hash-table-ref c p)))
 
+  (define (stack-copy s)
+    (let ((ns (make-stack)))
+      (for-each (lambda (e)
+          (stack-push! ns e))
+        (reverse (stack->list s)))
+      ns))
+
   (define (apply-c p ctxt)
-    (let* ((cache (combinator-cache p ctxt))
-           (id (ctxt-pos ctxt)))
-      (if (not (hash-table-exists? cache id))
-        (hash-table-set! cache id
-          (list (p ctxt)
-                (ctxt-pos ctxt)
-                (ctxt-line ctxt)
-                (ctxt-col ctxt)
-                (ctxt-err-pos ctxt)
-                (ctxt-err-line ctxt)
-                (ctxt-err-col ctxt)
-                (ctxt-err-msg ctxt))))
-      (let* ((r (hash-table-ref cache id))
-             (rr (list-ref r 0)))
-        (ctxt-pos-set! ctxt   (list-ref r 1))
-        (ctxt-line-set! ctxt  (list-ref r 2))
-        (ctxt-col-set! ctxt   (list-ref r 3))
-        (if (not r)
-          (begin
-            (ctxt-err-pos-set! ctxt (list-ref r 4))
-            (ctxt-err-line-set! ctxt (list-ref r 5))
-            (ctxt-err-col-set! ctxt  (list-ref r 6))
-            (ctxt-err-msg-set! ctxt  (list-ref r 7))))
-        rr)))
+    (if (ctxt-caching? ctxt)
+      (let* ((cache (combinator-cache p ctxt))
+             (id (ctxt-pos ctxt)))
+        (if (hash-table-exists? cache id)
+          (let ((r (hash-table-ref cache id)))
+            (read-chars (- (list-ref r 1) id) ctxt))
+          (let ((r (p ctxt)))
+            (hash-table-set! cache id
+              (list r
+                    (ctxt-pos ctxt)
+                    (ctxt-err-pos ctxt)
+                    (ctxt-err-line ctxt)
+                    (ctxt-err-col ctxt)
+                    (ctxt-err-msg ctxt)))))
+        (let* ((r (hash-table-ref cache id))
+               (rr (list-ref r 0)))
+          (if (not rr)
+            (begin
+              (ctxt-err-pos-set! ctxt (list-ref r 2))
+              (ctxt-err-line-set! ctxt (list-ref r 3))
+              (ctxt-err-col-set! ctxt  (list-ref r 4))
+              (ctxt-err-msg-set! ctxt  (list-ref r 5))))
+          rr))
+      (p ctxt)))
 
   ;; end of stream
-  (define (end-of-stream? i ctxt)
-    (>= i (ctxt-input-stream-length ctxt)))
+  (define (end-of-stream? ctxt)
+    (string-null? (ctxt-input-stream ctxt)))
 
   ;; error report
   (define (report-error ctxt)
@@ -171,24 +171,44 @@
     (ctxt-err-col-set!  ctxt (ctxt-col ctxt))
     (ctxt-err-msg-set!  ctxt msg))
 
+  ;; read/rewind pair for performance
+  (define (update-pos-line-col str ctxt #!optional (op +))
+    (ctxt-pos-set! ctxt (op (ctxt-pos ctxt) (string-length str)))
+    (let* ((ss (string-split str "\n" #t))
+           (ssl (length ss))
+           (ssll (string-length (car (reverse ss)))))
+      (if (= ssl 1)
+        (ctxt-col-set! ctxt (op (ctxt-col ctxt) ssll))
+        (ctxt-col-set! ctxt ssll))
+      (ctxt-line-set! ctxt (op (ctxt-line ctxt) (- ssl 1)))))
+
+  (define (read-chars n ctxt)
+    (let ((str (string-take (ctxt-input-stream ctxt) n)))
+      (stack-push! (ctxt-stack ctxt) str)
+      (ctxt-input-stream-set! ctxt (substring/shared (ctxt-input-stream ctxt) n))
+      (update-pos-line-col str ctxt)
+      str))
+
+  (define (rewind n ctxt)
+    (letrec ((l (lambda (i)
+        (if (not (= i n))
+          (let ((str (stack-pop! (ctxt-stack ctxt))))
+            (ctxt-input-stream-set! ctxt (string-append/shared str (ctxt-input-stream ctxt)))
+            (update-pos-line-col str ctxt -)
+            (l (+ i 1)))))))
+      (l 0)))
+
   ;; parse a char
   (define (char c)
     (check-char 'char c)
     (lambda (ctxt)
-      (if (end-of-stream? (ctxt-pos ctxt) ctxt)
+      (if (end-of-stream? ctxt)
         (begin
           (record-error ctxt "end of stream")
           #f)
-        (let ((ic (vector-ref (ctxt-input-stream ctxt) (ctxt-pos ctxt))))
+        (let ((ic (string-ref (ctxt-input-stream ctxt) 0)))
           (if (equal? ic c)
-             (begin
-               (ctxt-pos-set! ctxt (+ (ctxt-pos ctxt) 1))
-               (ctxt-col-set! ctxt (+ (ctxt-col ctxt) 1))
-               (if (equal? ic #\newline)
-                 (begin
-                   (ctxt-col-set! ctxt 0)
-                   (ctxt-line-set! ctxt (+ (ctxt-line ctxt) 1))))
-               (char-set->string (char-set c)))
+             (read-chars 1 ctxt) 
              (begin
                (record-error ctxt "expect:" c ";but got:" ic)
                #f))))))
@@ -198,7 +218,7 @@
   (define (seq fp . lst)
     (check-procedure 'seq fp)
     (lambda (ctxt)
-      (let* ((cpos (ctxt-pos ctxt))
+      (let* ((csc (stack-count (ctxt-stack ctxt)))
              (fr (apply-c fp ctxt))
              (lr (fold (lambda (cp pr)
                    (check-procedure 'seq cp)
@@ -215,7 +235,7 @@
          (if lr
            lr
            (begin
-             (ctxt-pos-set! ctxt cpos)
+             (rewind (- (stack-count (ctxt-stack ctxt)) csc) ctxt)
              #f)))))
   (define <and> seq)
 
@@ -272,17 +292,15 @@
     (check-procedure 'pred p)
     (check-procedure 'pred pd)
     (lambda (ctxt)
-      (let ((cpos (ctxt-pos ctxt))
-            (pr (apply-c p ctxt)))
+      (let ((pr (apply-c p ctxt)))
         (if pr
-          (let ((cppos (ctxt-pos ctxt))
-                (pdr (apply-c pd ctxt)))
+          (let ((pdr (apply-c pd ctxt)))
             (if (if n (not pdr) pdr)
               (begin
-                (ctxt-pos-set! ctxt cppos)
+                (if (not n) (rewind 1 ctxt))
                 pr)
               (begin
-                (ctxt-pos-set! ctxt cpos)
+                (if n (rewind 1 ctxt))
                 #f)))
           #f))))
   (define <&> pred)
@@ -296,7 +314,7 @@
   ;; end of file
   (define (eof)
     (lambda (ctxt)
-      (if (end-of-stream? (ctxt-pos ctxt) ctxt)
+      (if (end-of-stream? ctxt)
         ""
         (begin
           (record-error ctxt "expect: end of file")
@@ -306,17 +324,14 @@
   (define (neg p)
     (check-procedure 'neg p)
     (lambda (ctxt)
-      (let ((cpos (ctxt-pos ctxt))
+      (let ((csc (stack-count (ctxt-stack ctxt)))
             (r (apply-c p ctxt)))
         (if r
           (begin
-            (ctxt-pos-set! ctxt cpos)
+            (rewind (- (stack-count (ctxt-stack ctxt)) csc) ctxt)
             (record-error ctxt "expect: parsing failure")
             #f)
-          (begin
-            (ctxt-pos-set! ctxt (+ (ctxt-err-pos ctxt) 1))
-            (let ((s (substring (ctxt-input-string ctxt) cpos (ctxt-pos ctxt))))
-              s))))))
+            (read-chars (- (+ (ctxt-err-pos ctxt) 1) (ctxt-pos ctxt)) ctxt)))))
   (define <^> neg)
 
   ;; add action for parser to process the output
@@ -334,9 +349,7 @@
 	    (if fail
   	      (begin
                 (check-procedure 'act fail)
-                (fail (if (end-of-stream? (ctxt-err-pos ctxt) ctxt)
-                        ""
-                        (vector-ref (ctxt-input-stream ctxt) (ctxt-err-pos ctxt))))))
+                (fail (ctxt-err-msg ctxt))))
 	    #f)))))
   (define <@> act)
 
@@ -350,27 +363,16 @@
             (p c)) ctxt)))))
 
   ;; regexp
-
-  (define (update-line-col str ctxt)
-    (let* ((sr (string-split str "\n" #t))
-           (sll (string-length (car (reverse sr)))))
-      (if (= (length sr) 1)
-        (ctxt-col-set! ctxt (+ (ctxt-col ctxt) sll))
-        (ctxt-col-set! ctxt sll))
-        (ctxt-line-set! ctxt (+ (ctxt-line ctxt) (- (length sr) 1)))))
-
   (define (regexp-parser r)
     (check-string 'regexp-parser r)
     (lambda (ctxt)
-      (if (not (end-of-stream? (ctxt-pos ctxt) ctxt))
-        (let ((str (ctxt-input-string ctxt))
+      (if (not (end-of-stream? ctxt))
+        (let ((str (ctxt-input-stream ctxt))
               (re (regexp (string-append "^" r))))
-          (let ((rr (string-search re str (ctxt-pos ctxt))))
+          (let ((rr (string-search re str)))
             (if rr
               (let ((rrr (car rr)))
-                (ctxt-pos-set! ctxt (+ (ctxt-pos ctxt) (string-length rrr)))
-                (update-line-col rrr ctxt)
-                rrr)
+                (read-chars (string-length rrr) ctxt))
               (begin
                 (record-error ctxt "regexp \'" r "\' match failed")
                 #f))))
@@ -512,8 +514,8 @@
   (define <*_> rep_)
 
   ;; parse
-  (define (parse p n s)
-    (let* ((ctxt (%make-ctxt n s))
+  (define (parse p n s #!optional (c? #f))
+    (let* ((ctxt (%make-ctxt n s c?))
            (r (p ctxt)))
       (if r r
         (begin
@@ -521,21 +523,21 @@
           #f))))
 
   ;; parse file
-  (define (parse-file file p)
+  (define (parse-file file p #!optional (c? #f))
     (check-string 'parse-file file)
     (check-procedure 'parse-file p)
-    (parse p file (read-all file)))
+    (parse p file (read-all file) c?))
 
   ;; parse string
-  (define (parse-string str p)
+  (define (parse-string str p #!optional (c? #f))
     (check-string 'parse-string str)
     (check-procedure 'parse-string p)
-    (parse p str str))
+    (parse p str str c?))
   
   ;; parse from port
-  (define (parse-port port p)
+  (define (parse-port port p #!optional (c? #f))
     (check-input-port 'parse-port port)
     (check-procedure 'parse-port p)
-    (parse p (port-name) (read-all port))))
+    (parse p (port-name) (read-all port) c?)))
 
 
