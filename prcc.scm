@@ -358,15 +358,15 @@
             (p c)) ctxt)))))
 
   ;; regexp
-  (define (regexp-parser r)
+  (define (regexp-parser r #!optional (cl 10))
     (check-string 'regexp-parser r)
     (lambda (ctxt)
       (if (not (end-of-stream? ctxt))
         (let ((str (ctxt-input-stream ctxt))
               (re (string-append "^" r))
               (rc (make-irregex-chunker
-                    (lambda (str) (if (stream-null? (stream-cdr str)) #f (stream-cdr str)))
-                    (lambda (str) (string (stream-car str))))))
+                    (lambda (str) (if (stream-null? (stream-drop cl str)) #f (stream-drop cl str)))
+                    (lambda (str) (apply string (stream->list cl str))))))
           (let ((rr (irregex-search/chunked re rc str)))
             (if rr
               (let ((rrr (irregex-match-substring rr)))
