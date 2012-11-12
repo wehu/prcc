@@ -70,7 +70,6 @@
   (use srfi-1)
   (use srfi-14)
   (use srfi-69)
-  (use srfi-13)
   (use srfi-41)
   (use streams-utils)
   (use stack)
