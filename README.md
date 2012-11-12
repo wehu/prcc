@@ -71,7 +71,7 @@ Prcc is a PEG-like combinator parser library by packrat parsing
      * alias `<and_>`
   * `(even parser)` : return even elements of sequence
   * `(odd parser)` : return odd elements of sequence
-* `(parse-file filename parser)`
-* `(parse-string string parser)`
-* `(parse-port port parser)`
+* `(parse-file filename parser [cache])` : by default, no cache
+* `(parse-string string parser [cache])`
+* `(parse-port port parser [cache])`
 
