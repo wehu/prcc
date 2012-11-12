@@ -383,13 +383,20 @@
   ;; a string
   (define (str s)
     (check-string 'str s)
-    (act
-      (apply seq
-        (map (lambda (c)
-          (char c))
-          (string->list s)))
-      (lambda (o)
-        (apply string-append o))))
+    (lambda (ctxt)
+      (if (end-of-stream? ctxt)
+        (begin
+          (record-error ctxt "end of stream")
+          #f)
+        (let* ((sl (string-length s))
+               (is (apply string
+                     (stream->list sl
+                                  (ctxt-input-stream ctxt)))))
+          (if (equal? is s)
+             (read-chars sl ctxt)
+             (begin
+               (record-error ctxt "expect:" s ";but got:" is)
+               #f))))))
   (define <s> str)
 
   ;; match one char in a string
