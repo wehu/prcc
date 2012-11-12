@@ -71,9 +71,11 @@
   (use srfi-14)
   (use srfi-69)
   (use srfi-13)
+  (use srfi-41)
+  (use streams-utils)
   (use stack)
   (use type-checks)
-  (use regex)
+  (use irregex)
   (use data-structures)
   (use utils)
 
@@ -81,8 +83,6 @@
     name
     input-stream
     stack
-    input-stream-length
-    input-cache
     pos
     line
     col
@@ -98,8 +98,6 @@
                   n
                   s
                   (make-stack)
-                  (string-length s)
-                  (make-hash-table)
                   0
                   0
                   0
@@ -117,13 +115,6 @@
       (if (not (hash-table-exists? c p))
         (hash-table-set! c p (make-hash-table)))
       (hash-table-ref c p)))
-
-  (define (stack-copy s)
-    (let ((ns (make-stack)))
-      (for-each (lambda (e)
-          (stack-push! ns e))
-        (reverse (stack->list s)))
-      ns))
 
   (define (apply-c p ctxt)
     (if (ctxt-caching? ctxt)
@@ -153,7 +144,7 @@
 
   ;; end of stream
   (define (end-of-stream? ctxt)
-    (string-null? (ctxt-input-stream ctxt)))
+    (stream-null? (ctxt-input-stream ctxt)))
 
   ;; error report
   (define (report-error ctxt)
@@ -184,52 +175,20 @@
         (ctxt-col-set! ctxt ssll))
       (ctxt-line-set! ctxt (op (ctxt-line ctxt) (- ssl 1)))))
 
-  ;; cache string operation?
-  (define (substring-c n ctxt)
-    (if #f ;(ctxt-caching? ctxt)
-      (let* ((sl (ctxt-input-stream-length ctxt))
-             (id (cons (+ (ctxt-pos ctxt) n) sl))
-             (cache (ctxt-input-cache ctxt)))
-        (if (not (hash-table-exists? cache id))
-          (hash-table-set! cache id (substring/shared (ctxt-input-stream ctxt) n)))
-        (hash-table-ref cache id))
-      (substring/shared (ctxt-input-stream ctxt) n)))
-
-  (define (string-take-c n ctxt)
-    (if #f ;(ctxt-caching? ctxt)
-      (begin
-        (substring-c 0 ctxt)
-        (let* ((id (cons (ctxt-pos ctxt) (+ (ctxt-pos ctxt) n)))
-               (cache (ctxt-input-cache ctxt)))
-          (if (not (hash-table-exists? cache id))
-            (hash-table-set! cache id (string-take (ctxt-input-stream ctxt) n)))
-          (ctxt-input-stream-set! ctxt (substring-c n ctxt))
-          (hash-table-ref cache id)))
-      (let ((str (string-take (ctxt-input-stream ctxt) n)))
-        (ctxt-input-stream-set! ctxt (substring-c n ctxt))
-        str)))
-
-  (define (string-rewind-c s ctxt)
-    (if #f ;(ctxt-caching? ctxt)
-      (let* ((sl (ctxt-input-stream-length ctxt))
-             (id (cons (- (ctxt-pos ctxt) (string-length s)) sl))
-             (cache (ctxt-input-cache ctxt)))
-        (if (not (hash-table-exists? cache id))
-          (hash-table-set! cache id (string-append/shared s (ctxt-input-stream ctxt))))
-        (ctxt-input-stream-set! ctxt (hash-table-ref cache id)))
-      (ctxt-input-stream-set! ctxt (string-append/shared s (ctxt-input-stream ctxt)))))
-
   (define (read-chars n ctxt)
-    (let ((str (string-take-c n ctxt)))
-      (stack-push! (ctxt-stack ctxt) str)
+    (let* ((nc (stream-take n (ctxt-input-stream ctxt)))
+           (str (list->string (stream->list nc))))
+      (ctxt-input-stream-set! ctxt (stream-drop n (ctxt-input-stream ctxt)))
+      (stack-push! (ctxt-stack ctxt) nc)
       (update-pos-line-col str ctxt)
       str))
 
   (define (rewind n ctxt)
     (letrec ((l (lambda (i)
         (if (not (= i n))
-          (let ((str (stack-pop! (ctxt-stack ctxt))))
-            (string-rewind-c str ctxt)
+          (let* ((nc (stack-pop! (ctxt-stack ctxt)))
+                 (str (list->string (stream->list nc))))
+            (ctxt-input-stream-set! ctxt (stream-append nc (ctxt-input-stream ctxt)))
             (update-pos-line-col str ctxt -)
             (l (+ i 1)))))))
       (l 0)))
@@ -242,7 +201,7 @@
         (begin
           (record-error ctxt "end of stream")
           #f)
-        (let ((ic (string-ref (ctxt-input-stream ctxt) 0)))
+        (let ((ic (stream-car (ctxt-input-stream ctxt))))
           (if (equal? ic c)
              (read-chars 1 ctxt) 
              (begin
@@ -404,10 +363,13 @@
     (lambda (ctxt)
       (if (not (end-of-stream? ctxt))
         (let ((str (ctxt-input-stream ctxt))
-              (re (regexp (string-append "^" r))))
-          (let ((rr (string-search re str)))
+              (re (string-append "^" r))
+              (rc (make-irregex-chunker
+                    (lambda (str) (if (stream-null? (stream-cdr str)) #f (stream-cdr str)))
+                    (lambda (str) (string (stream-car str))))))
+          (let ((rr (irregex-search/chunked re rc str)))
             (if rr
-              (let ((rrr (car rr)))
+              (let ((rrr (irregex-match-substring rr)))
                 (read-chars (string-length rrr) ctxt))
               (begin
                 (record-error ctxt "regexp \'" r "\' match failed")
@@ -562,18 +524,18 @@
   (define (parse-file file p #!optional (c? #f))
     (check-string 'parse-file file)
     (check-procedure 'parse-file p)
-    (parse p file (read-all file) c?))
+    (parse p file (file->stream file) c?))
 
   ;; parse string
   (define (parse-string str p #!optional (c? #f))
     (check-string 'parse-string str)
     (check-procedure 'parse-string p)
-    (parse p str str c?))
+    (parse p str (list->stream (string->list str)) c?))
   
   ;; parse from port
   (define (parse-port port p #!optional (c? #f))
     (check-input-port 'parse-port port)
     (check-procedure 'parse-port p)
-    (parse p (port-name) (read-all port) c?)))
+    (parse p (port-name) (port->stream port) c?)))
 
 
