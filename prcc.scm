@@ -82,6 +82,7 @@
     input-stream
     stack
     input-stream-length
+    input-cache
     pos
     line
     col
@@ -95,9 +96,10 @@
   (define (%make-ctxt n s #!optional (c? #f))
     (let ((ctxt (make-ctxt
                   n
-                  (substring/shared s 0)
+                  s
                   (make-stack)
                   (string-length s)
+                  (make-hash-table)
                   0
                   0
                   0
@@ -182,10 +184,34 @@
         (ctxt-col-set! ctxt ssll))
       (ctxt-line-set! ctxt (op (ctxt-line ctxt) (- ssl 1)))))
 
+  ;; cache string operation?
+  (define (substring-c n ctxt)
+    (let* ((sl (ctxt-input-stream-length ctxt))
+           (id (cons (+ (ctxt-pos ctxt) n) sl))
+           (cache (ctxt-input-cache ctxt)))
+      (if (not (hash-table-exists? cache id))
+        (hash-table-set! cache id (substring/shared (ctxt-input-stream ctxt) n)))
+      (hash-table-ref cache id)))
+
+  (define (string-take-c n ctxt)
+    (let* ((id (cons (ctxt-pos ctxt) (+ (ctxt-pos ctxt) n)))
+           (cache (ctxt-input-cache ctxt)))
+      (if (not (hash-table-exists? cache id))
+        (hash-table-set! cache id (string-take (ctxt-input-stream ctxt) n)))
+      (hash-table-ref cache id)))
+
+  (define (string-rewind-c s ctxt)
+    (let* ((sl (ctxt-input-stream-length ctxt))
+           (id (cons (- (ctxt-pos ctxt) (string-length s)) sl))
+           (cache (ctxt-input-cache ctxt)))
+      (if (not (hash-table-exists? cache id))
+        (hash-table-set! cache id (string-append/shared s (ctxt-input-stream ctxt))))
+      (hash-table-ref cache id)))
+
   (define (read-chars n ctxt)
-    (let ((str (string-take (ctxt-input-stream ctxt) n)))
+    (let ((str (string-take-c n ctxt)))
       (stack-push! (ctxt-stack ctxt) str)
-      (ctxt-input-stream-set! ctxt (substring/shared (ctxt-input-stream ctxt) n))
+      (ctxt-input-stream-set! ctxt (substring-c n ctxt))
       (update-pos-line-col str ctxt)
       str))
 
@@ -193,7 +219,7 @@
     (letrec ((l (lambda (i)
         (if (not (= i n))
           (let ((str (stack-pop! (ctxt-stack ctxt))))
-            (ctxt-input-stream-set! ctxt (string-append/shared str (ctxt-input-stream ctxt)))
+            (ctxt-input-stream-set! ctxt (string-rewind-c str ctxt))
             (update-pos-line-col str ctxt -)
             (l (+ i 1)))))))
       (l 0)))

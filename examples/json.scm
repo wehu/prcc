@@ -26,10 +26,11 @@
         digits))
 
 (define number
-  (<or> (<and_> int frac expp)
-        (<and_> int frac)
-        (<and_> int expp)
-        (<and_> int)))
+  (<r> "(\\+|-)?\\d+(\\.\\d+)?"))
+;  (<or> (<and_> int frac expp)
+;        (<and_> int frac)
+;        (<and_> int expp)
+;        (<and_> int)))
 
 (define ch
   (<or> (<r> "\\\\u[0-9a-f]{4}")
@@ -46,8 +47,9 @@
   (<+> ch))
 
 (define str
-  (<or> (<and> (<c> #\") (<c> #\"))
-        (<and> (<c> #\") chars (<c> #\"))))
+  (<r> "\"[^\"]*\""))
+;  (<or> (<and> (<c> #\") (<c> #\"))
+;        (<and> (<c> #\") chars (<c> #\"))))
 
 (define value
   (<or> (lazy array)
