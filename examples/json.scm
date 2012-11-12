@@ -1,3 +1,5 @@
+;; very slow json parser
+
 (use prcc)
 
 (define true (<s> "true"))
@@ -26,11 +28,10 @@
         digits))
 
 (define number
-  (<r> "(\\+|-)?\\d+(\\.\\d+)?"))
-;  (<or> (<and_> int frac expp)
-;        (<and_> int frac)
-;        (<and_> int expp)
-;        (<and_> int)))
+  (<or> (<and_> int frac expp)
+        (<and_> int frac)
+        (<and_> int expp)
+        (<and_> int)))
 
 (define ch
   (<or> (<r> "\\\\u[0-9a-f]{4}")
@@ -47,9 +48,8 @@
   (<+> ch))
 
 (define str
-  (<r> "\"[^\"]*\""))
-;  (<or> (<and> (<c> #\") (<c> #\"))
-;        (<and> (<c> #\") chars (<c> #\"))))
+  (<or> (<and> (<c> #\") (<c> #\"))
+        (<and> (<c> #\") chars (<c> #\"))))
 
 (define value
   (<or> (lazy array)
