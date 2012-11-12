@@ -42,6 +42,7 @@
               <^>
               regexp-parser
               <r>
+              cached
               ;; helpers
               str
               <s>
@@ -115,8 +116,8 @@
         (hash-table-set! c p (make-hash-table)))
       (hash-table-ref c p)))
 
-  (define (apply-c p ctxt)
-    (if (ctxt-caching? ctxt)
+  (define (apply-c p ctxt #!optional (c? #f))
+    (if (or (ctxt-caching? ctxt) c?)
       (let* ((cache (combinator-cache p ctxt))
              (id (ctxt-pos ctxt)))
         (if (hash-table-exists? cache id)
@@ -377,6 +378,10 @@
            (record-error ctxt "expect:" r ";but got: end of file")
            #f))))
   (define <r> regexp-parser)
+
+  (define (cached p)
+    (lambda (ctxt)
+      (apply-c p ctxt #t)))
 
   ;; helpers
 
