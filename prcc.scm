@@ -194,10 +194,12 @@
       (hash-table-ref cache id)))
 
   (define (string-take-c n ctxt)
+    (substring-c 0 ctxt)
     (let* ((id (cons (ctxt-pos ctxt) (+ (ctxt-pos ctxt) n)))
            (cache (ctxt-input-cache ctxt)))
       (if (not (hash-table-exists? cache id))
         (hash-table-set! cache id (string-take (ctxt-input-stream ctxt) n)))
+      (ctxt-input-stream-set! ctxt (substring-c n ctxt))
       (hash-table-ref cache id)))
 
   (define (string-rewind-c s ctxt)
@@ -206,12 +208,11 @@
            (cache (ctxt-input-cache ctxt)))
       (if (not (hash-table-exists? cache id))
         (hash-table-set! cache id (string-append/shared s (ctxt-input-stream ctxt))))
-      (hash-table-ref cache id)))
+      (ctxt-input-stream-set! ctxt (hash-table-ref cache id))))
 
   (define (read-chars n ctxt)
     (let ((str (string-take-c n ctxt)))
       (stack-push! (ctxt-stack ctxt) str)
-      (ctxt-input-stream-set! ctxt (substring-c n ctxt))
       (update-pos-line-col str ctxt)
       str))
 
@@ -219,7 +220,7 @@
     (letrec ((l (lambda (i)
         (if (not (= i n))
           (let ((str (stack-pop! (ctxt-stack ctxt))))
-            (ctxt-input-stream-set! ctxt (string-rewind-c str ctxt))
+            (string-rewind-c str ctxt)
             (update-pos-line-col str ctxt -)
             (l (+ i 1)))))))
       (l 0)))
