@@ -364,8 +364,8 @@
         (let ((str (ctxt-input-stream ctxt))
               (re (string-append "^" r))
               (rc (make-irregex-chunker
-                    (lambda (str) (if (stream-null? (stream-drop cl str)) #f (stream-drop cl str)))
-                    (lambda (str) (apply string (stream->list cl str))))))
+                    (lambda (str) (if (stream-null? (stream-cdr str)) #f (stream-cdr str)))
+                    (lambda (str) (string (stream-car str))))))
           (let ((rr (irregex-search/chunked re rc str)))
             (if rr
               (let ((rrr (irregex-match-substring rr)))
