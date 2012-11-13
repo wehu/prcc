@@ -49,6 +49,7 @@ Prcc is a PEG-like combinator parser library by packrat parsing
 * `(regexp-parser string [chunk-size])`
   * alias `<r>`
 * `(lazy parser)`
+* `(cached parser)` : cache parser result
 * helpers
   * `(str string)` : a string parser
       * alias `<s>`
