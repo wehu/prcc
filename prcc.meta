@@ -1,8 +1,32 @@
 ((files "prcc.setup"
-        "prcc.scm")
- (licence "Apache")
- (category "parsing")
- (depends type-checks irregex stack srfi-41 streams-utils)
+        "prcc.release-info"
+        "prcc.meta"
+        "prcc.scm"
+        "tests/act.scm"
+        "tests/ind.scm"
+        "tests/lazy.scm"
+        "tests/one.scm"
+        "tests/pred.scm"
+        "tests/regexp.scm"
+        "tests/repp.scm"
+        "tests/sel.scm"
+        "tests/seq_.scm"
+        "tests/eof.scm"
+        "tests/join.scm"
+        "tests/neg.scm"
+        "tests/one_of.scm"
+        "tests/pred_neg.scm"
+        "tests/rep.scm"
+        "tests/run.scm"
+        "tests/seq.scm"
+        "examples/helloworld.scm"
+        "examples/json.scm"
+        "examples/regexp.scm"
+        "examples/sjson.scm"
+        "README.md")
+ (license "BSD")
+ (category parsing)
+ (depends srfi-69 irregex stack data-structures srfi-41)
  (test-depends test)
  (author "Wei Hu")
  (synopsis "Prcc is a PEG-like combinator parser library by packrat parsing"))

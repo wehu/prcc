@@ -1,0 +1,4 @@
+(repo git "https://github.com/wehu/prcc.git")
+
+(uri targz "https://github.com/wehu/prcc/archive/master.tar.gz")
+(release "0.1")
