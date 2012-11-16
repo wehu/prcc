@@ -92,8 +92,10 @@
   (use irregex)
   (use data-structures)
   (use utils)
+  (use record-variants)
 
-  (define-record ctxt
+  (define-record-variant ctxt
+    (unsafe unchecked inline)
     name
     input-stream
     stack
@@ -173,10 +175,12 @@
     (display ")\n"))
 
   (define (record-error ctxt . msg)
-    (ctxt-err-pos-set!  ctxt (ctxt-pos ctxt))
-    (ctxt-err-line-set! ctxt (ctxt-line ctxt))
-    (ctxt-err-col-set!  ctxt (ctxt-col ctxt))
-    (ctxt-err-msg-set!  ctxt msg))
+    (if (equal? (ctxt-err-msg ctxt) "")
+      (begin
+        (ctxt-err-pos-set!  ctxt (ctxt-pos ctxt))
+        (ctxt-err-line-set! ctxt (ctxt-line ctxt))
+        (ctxt-err-col-set!  ctxt (ctxt-col ctxt))
+        (ctxt-err-msg-set!  ctxt msg))))
 
   ;; read/rewind pair for performance
   (define (update-pos-line-col str ctxt #!optional (op +))
