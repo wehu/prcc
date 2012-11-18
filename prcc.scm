@@ -92,10 +92,8 @@
   (use irregex)
   (use data-structures)
   (use utils)
-  (use record-variants)
 
-  (define-record-variant ctxt
-    (unsafe unchecked inline)
+  (define-record ctxt
     name
     input-stream
     stack
