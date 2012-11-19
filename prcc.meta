@@ -26,7 +26,7 @@
         "README.md")
  (license "BSD")
  (category parsing)
- (depends stack srfi-41)
+ (depends stack srfi-41 record-variants)
  (test-depends test)
  (author "Wei Hu")
  (synopsis "Prcc is a PEG-like combinator parser library by packrat parsing"))

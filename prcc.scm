@@ -92,8 +92,10 @@
   (use irregex)
   (use data-structures)
   (use utils)
+  (use record-variants)
 
-  (define-record ctxt
+  (define-record-variant ctxt
+    (inline)
     name
     input-stream
     stack
@@ -228,11 +230,13 @@
   ;; seqence of parsers
   (define (seq fp . lst)
     (check-procedure 'seq fp)
+    (for-each (lambda (p)
+        (check-procedure 'seq p))
+      lst)
     (lambda (ctxt)
       (let* ((csc (stack-count (ctxt-stack ctxt)))
              (fr (apply-c fp ctxt))
              (lr (fold (lambda (cp pr)
-                   (check-procedure 'seq cp)
                    (if pr
                      (let ((cr (apply-c cp ctxt)))
                        (if cr
@@ -252,9 +256,11 @@
 
   ;; ordered selective parsers
   (define (sel . lst)
+    (for-each (lambda (p)
+        (check-procedure 'seq p))
+      lst)
     (lambda (ctxt)
       (fold (lambda (cp r)
-              (check-procedure 'sel cp) 
               (if r
                 r
                 (let ((cr (apply-c cp ctxt)))
@@ -348,18 +354,20 @@
   ;; add action for parser to process the output
   (define (act p #!optional (succ #f) (fail #f))
     (check-procedure 'act p)
+    (if succ
+      (check-procedure 'act succ))
+    (if fail
+      (check-procedure 'act fail))
     (lambda (ctxt)
       (let ((pr (apply-c p ctxt)))
         (if pr
 	  (if succ
             (begin
-              (check-procedure 'act succ)
               (succ pr))
 	    pr)
           (begin
 	    (if fail
   	      (begin
-                (check-procedure 'act fail)
                 (fail (ctxt-err-msg ctxt))))
 	    #f)))))
   (define <@> act)
@@ -370,7 +378,6 @@
       ((_ p)
        (lambda (ctxt)
          ((lambda (c)
-            (check-procedure 'lazy p)
             (p c)) ctxt)))))
 
   ;; regexp
@@ -511,7 +518,7 @@
                        (if (equal? p #:skip)
                          (cons (car i) #f)
                          (begin
-			   (check-procedure 'seq_ p)
+			   ;(check-procedure 'seq_ p)
 			   (cons (append (car i) (list p)) #t)))
                        (cons (car i) #t)))
                    (cons `() #t)
