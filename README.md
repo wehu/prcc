@@ -1,13 +1,11 @@
 ### Parser/Regex Combinator library for Chicken scheme
 
-Prcc is a PEG-like combinator parser library by packrat parsing
-
+Prcc is a PEG-like combinator parser library by packrat parsing.
+Inspired by ruby gem [rsec](https://github.com/luikore/rsec).
 
 ### Install
 
-	git clone https://github.com/wehu/prcc.git
-	cd prcc
-	chicken-install
+	chicken-install prcc
 
 ### Example
 
