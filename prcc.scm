@@ -126,13 +126,13 @@
       ctxt))
 
   ;; cache computation results based on combintor and stream position
-  (define (combinator-cache p ctxt)
+  (define-inline (combinator-cache p ctxt)
     (let ((c (ctxt-cache ctxt)))
       (if (not (hash-table-exists? c p))
         (hash-table-set! c p (make-hash-table)))
       (hash-table-ref c p)))
 
-  (define (apply-c p ctxt #!optional (c? #f))
+  (define-inline (apply-c p ctxt #!optional (c? #f))
     (if (or (ctxt-caching? ctxt) c?)
       (let* ((cache (combinator-cache p ctxt))
              (id (ctxt-pos ctxt)))
@@ -159,7 +159,7 @@
       (p ctxt)))
 
   ;; end of stream
-  (define (end-of-stream? ctxt)
+  (define-inline (end-of-stream? ctxt)
     (stream-null? (ctxt-input-stream ctxt)))
 
   ;; error report
@@ -174,7 +174,7 @@
     (display (+ (ctxt-err-col ctxt) 1))
     (display ")\n"))
 
-  (define (record-error ctxt . msg)
+  (define-inline (record-error ctxt . msg)
     (if (equal? (ctxt-err-msg ctxt) "")
       (begin
         (ctxt-err-pos-set!  ctxt (ctxt-pos ctxt))
@@ -183,7 +183,7 @@
         (ctxt-err-msg-set!  ctxt msg))))
 
   ;; read/rewind pair for performance
-  (define (update-pos-line-col str ctxt #!optional (op +))
+  (define-inline (update-pos-line-col str ctxt #!optional (op +))
     (ctxt-pos-set! ctxt (op (ctxt-pos ctxt) (string-length str)))
     (let* ((ss (string-split str "\n" #t))
            (ssl (length ss))
@@ -193,7 +193,7 @@
         (ctxt-col-set! ctxt ssll))
       (ctxt-line-set! ctxt (op (ctxt-line ctxt) (- ssl 1)))))
 
-  (define (read-chars n ctxt)
+  (define-inline (read-chars n ctxt)
     (let* ((nc (stream-take n (ctxt-input-stream ctxt)))
            (str (list->string (stream->list nc))))
       (ctxt-input-stream-set! ctxt (stream-drop n (ctxt-input-stream ctxt)))
@@ -201,7 +201,7 @@
       (update-pos-line-col str ctxt)
       str))
 
-  (define (rewind n ctxt)
+  (define-inline (rewind n ctxt)
     (letrec ((l (lambda (i)
         (if (not (= i n))
           (let* ((nc (stack-pop! (ctxt-stack ctxt)))
