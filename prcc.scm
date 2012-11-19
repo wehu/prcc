@@ -175,12 +175,10 @@
     (display ")\n"))
 
   (define-inline (record-error ctxt . msg)
-    (if (equal? (ctxt-err-msg ctxt) "")
-      (begin
-        (ctxt-err-pos-set!  ctxt (ctxt-pos ctxt))
-        (ctxt-err-line-set! ctxt (ctxt-line ctxt))
-        (ctxt-err-col-set!  ctxt (ctxt-col ctxt))
-        (ctxt-err-msg-set!  ctxt msg))))
+    (ctxt-err-pos-set!  ctxt (ctxt-pos ctxt))
+    (ctxt-err-line-set! ctxt (ctxt-line ctxt))
+    (ctxt-err-col-set!  ctxt (ctxt-col ctxt))
+    (ctxt-err-msg-set!  ctxt msg))
 
   ;; read/rewind pair for performance
   (define-inline (update-pos-line-col str ctxt #!optional (op +))
