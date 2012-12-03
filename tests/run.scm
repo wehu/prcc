@@ -21,4 +21,6 @@
 (include "seq_.scm")
 (include "regexp.scm")
 
+(test-exit)
+
 )
