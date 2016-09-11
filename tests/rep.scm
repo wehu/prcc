@@ -20,7 +20,10 @@
 
 (test `() (parse-string "b" p0))
 
+(define p1 (<*_> (char #\a) skip: (char #\,)))
+
+(test (list "a" "a" "a" "a" "a") (parse-string "a,a,a,a,a" p1))
+
+(test `() (parse-string "b" p1))
+
 (test-end "rep_")
-
-
-

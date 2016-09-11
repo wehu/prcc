@@ -539,7 +539,7 @@
   (define (rep_ p #!key (skip (<s*>)))
     (check-procedure 'rep_ p)
     (check-procedure 'rep_ skip)
-    (<or> (rep+_ p skip)
+    (<or> (rep+_ p skip: skip)
 	  (act (zero) (lambda (o) `()))))
   (define <*_> rep_)
 
