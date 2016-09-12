@@ -262,9 +262,9 @@
               (if r
                 r
                 (let ((cr (apply-c cp ctxt)))
-                  (if cr
-                    cr
-                    #f))))
+                    (if cr
+                      cr
+                      #f))))
         #f
         lst)))
   (define <or> sel)
@@ -307,15 +307,16 @@
     (check-procedure 'pred p)
     (check-procedure 'pred pd)
     (lambda (ctxt)
-      (let ((pr (apply-c p ctxt)))
+      (let ((pr (apply-c p ctxt))
+            (csc (stack-count (ctxt-stack ctxt))))
         (if pr
           (let ((pdr (apply-c pd ctxt)))
             (if (if n (not pdr) pdr)
               (begin
-                (if (not n) (rewind 1 ctxt))
+                (if (not n) (rewind (- (stack-count (ctxt-stack ctxt)) csc) ctxt))
                 pr)
               (begin
-                (if n (rewind 1 ctxt))
+                (if n (rewind (- (stack-count (ctxt-stack ctxt)) csc) ctxt))
                 #f)))
           #f))))
   (define <&> pred)
@@ -410,19 +411,15 @@
   (define (str s)
     (check-string 'str s)
     (lambda (ctxt)
-      (if (end-of-stream? ctxt)
-        (begin
-          (record-error ctxt "end of stream")
-          #f)
-        (let* ((sl (string-length s))
-               (is (apply string
-                     (stream->list sl
-                                  (ctxt-input-stream ctxt)))))
-          (if (equal? is s)
-             (read-chars sl ctxt)
-             (begin
-               (record-error ctxt "expect:" s ";but got:" is)
-               #f))))))
+      (let* ((sl (string-length s))
+             (is (apply string
+                   (stream->list sl
+                                (ctxt-input-stream ctxt)))))
+        (if (equal? is s)
+           (read-chars sl ctxt)
+           (begin
+             (record-error ctxt "expect:" s ";but got:" is)
+             #f)))))
   (define <s> str)
 
   ;; match one char in a string

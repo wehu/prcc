@@ -19,6 +19,7 @@
         "tests/rep.scm"
         "tests/run.scm"
         "tests/seq.scm"
+        "tests/str.scm"
         "examples/helloworld.scm"
         "examples/json.scm"
         "examples/regexp.scm"

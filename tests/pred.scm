@@ -10,4 +10,8 @@
 
 (test-assert (not (parse-string "ac" p0)))
 
+(define p1 (pred (eof) (eof)))
+
+(test-assert (parse-string "" p1))
+
 (test-end "pred")

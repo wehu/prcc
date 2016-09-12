@@ -20,6 +20,7 @@
 (include "seq.scm")
 (include "seq_.scm")
 (include "regexp.scm")
+(include "str.scm")
 
 (test-exit)
 
