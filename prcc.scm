@@ -364,10 +364,9 @@
             (begin
               (succ pr))
 	    pr)
-          (begin
-	    (if fail
-  	      (begin
-                (fail (ctxt-err-msg ctxt))))
+	  (if fail
+  	    (begin
+              (fail (ctxt-err-msg ctxt)))
 	    #f)))))
   (define <@> act)
 

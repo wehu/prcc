@@ -15,8 +15,14 @@
 (define p1 (<and> (char #\a)
                 (<@> (one-of "abc")
                   (lambda (o) "ooo")
-                  (lambda (o) (display "meeting \'e\'")))
-                (eof)))
-(test-assert (not (parse-string "ae" p1)))
+                  (lambda (o) "e"))
+                ))
+(test (list "a" "e") (parse-string "ae" p1))
+
+(use data-structures)
+
+(define p2 (act (char #\x) identity (constantly 1)))
+
+(test 1 (parse-string "" p2))
 
 (test-end "act")
