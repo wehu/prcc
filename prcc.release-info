@@ -3,3 +3,4 @@
 (uri targz "https://github.com/wehu/prcc/archive/v{egg-release}.tar.gz")
 (release "0.1")
 (release "0.2")
+(release "0.3")
