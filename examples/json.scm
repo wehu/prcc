@@ -80,19 +80,19 @@
 (define parser
   (<and_> value (eof)))
 
-(use test)
+;;(use test)
 
-(test-group "json"
+;;(test-group "json"
 
-  (test-begin "json")
+  ;;(test-begin "json")
   
-  (define result #f)
+ ;; (define result #f)
   
   (for-each (lambda (f)
-    (set! result (parse-file f parser))
-    (test-assert result)
+    (set! result (parse-file f parser #t))
+ ;;   (test-assert result)
     (display result)
     (newline))
     (cdr (argv)))
   
-  (test-end "json"))
+ ;; (test-end "json"))

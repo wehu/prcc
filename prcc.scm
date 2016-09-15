@@ -492,7 +492,7 @@
           (cons `() 0)
           o)))))
 
-  (define (join+_ p0 p1 #!key (skip (<s*>)))
+  (define (join+_ p0 p1 #!key (skip (sel (<s*>) (eof))))
     (check-procedure 'join+_ p0)
     (check-procedure 'join+_ p1)
     (check-procedure 'join+_ skip)
@@ -505,7 +505,7 @@
           (cons `() 0)
           o)))))
 
-  (define (seq_ #!rest lst #!key (skip (<s*>)))
+  (define (seq_ #!rest lst #!key (skip (sel (<s*>) (eof))))
     (check-procedure 'seq_ skip)
     (let* ((nlst (car (fold (lambda (p i)
                      (if (cdr i)
@@ -526,13 +526,13 @@
       (even (apply seq l))))
   (define <and_> seq_)
 
-  (define (rep+_ p #!key (skip (<s*>)))
+  (define (rep+_ p #!key (skip (sel (<s*>) (eof))))
     (check-procedure 'rep+_ p)
     (check-procedure 'rep+_ skip)
     (even (join+ p skip)))
   (define <+_> rep+_)
 
-  (define (rep_ p #!key (skip (<s*>)))
+  (define (rep_ p #!key (skip (sel (<s*>) (eof))))
     (check-procedure 'rep_ p)
     (check-procedure 'rep_ skip)
     (<or> (rep+_ p skip: skip)
